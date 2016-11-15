@@ -58,18 +58,32 @@ This is an OFFLINE way to run GZX. It uses the output SWAP files mentioned above
 The ONLINE version of GZX hasn't yet had all the kinks worked out. The basic structure of the ONLINE version will first run SWAP.py and then MachineClassifier.py directly afterwards. Both will modify the collection pickle instead of (or in addition to) the Storage Locker. 
 
 
-### Experiments to run
-A slew of simulations (with and without MC) need to be run to explore the parameter space of SWAP. Parameters of interest include the acceptance and rejectance thresholds, the prior, and the initialPL and initialPD of user-agents
-* Are # classifications relatively immune to initialPL and initialPD values? Vary PL/PD between .55 - .8
-* Does it matter if PL and PD are the same or different?
-* How drastically do classifications change when rejectance/acceptance thresholds change?
-* What affect does the initial prior have? (currently set at 0.3)
+### SWAP-only Simulations
 
-Work should also be done on other questions in the GZ2 decision tree. 
-* Bar or Not?  (task 3)
-* Spiral arms or Not? (task 4)
-* Bulge or Not? (task 5)
-* Edge on or Not? (task 2)
+A slew of simulations have been run to explore the parameter space of SWAP. Most important parameters are the intitial volunteer confusion matrix,  the subject prior probability, and acceptance and rejectance thresholds. 
+
+Simulations that we have performed:
+
+|Date Started|Sample|Train Strategy|Subject Labels|Configuration|PL, PD|Prior|Thresholds|Last GZ2 Day|RunName|NOTES|
+|6/30/2016|expertsample|trainfirst|S or N|S&U|0.5, 0.5|0.3|0.004, 0.99|2/25/2009|GZ2_sup_unsup_0.5_trainfirst_standard2|Using "Expert_label"|Can't run code using "Nair_label" on one and "Expert_label" on the other|
+|6/30/2016|expertsample|trainfirst|S or N|S only|0.5, 0.5|0.3|0.004, 0.99|2/25/2009|GZ2_sup_0.5_trainfirst_standard2|Using "Expert_label"|because the code is all in the same directory. These have to be done in order.|
+|6/29/2016|expertsample|trainfirst|F or N|S&U|0.5, 0.5|0.3|0.004, 0.99|2/25/2009|GZ2_sup_unsup_0.5_trainfirst_flipfeature|Using "Nair_label" |
+|6/29/2016|expertsample|trainfirst|F or N|S only|0.5, 0.5|0.3|0.004, 0.99|2/25/2009|GZ2_sup_0.5_trainfirst_flipfeature|Using "Nair_label" |
+|6/29/2016|expertsample|trainfirst|F or N|S&U|0.5, 0.5|0.3|0.004, 0.99|2/25/2009|GZ2_sup_unsup_0.5_trainfirst_flipfeature2|Using "Expert_label"|
+|6/29/2016|expertsample|trainfirst|F or N|S only|0.5, 0.5|0.3|0.004, 0.99|5/14/2009|GZ2_sup_0.5_trainfirst_flipfeature2|Using "Expert_label"|This run got fucked -- pickle files wiped out. Nightly output exists in S_PLPD5_flipfeature2b/. Re-ran the full sim; in S_PLPD5_flipfeature2b_second/ |
+|7/7/2016|expertsample|trainfirst|F or N|S only|0.5, 0.5|0.5|0.004, 0.99|5/14/2009|GZ2_sup_PLPD5_p5_flipfeature2|Using "Expert_label"|
+|7/7/2016|expertsample|trainfirst|S or N|S only|0.5, 0.5|0.5|0.004, 0.99|2/25/2009|GZ2_sup_PLPD5_p5_standard2|Using "Expert_label"|
+|7/15/2016|expertsample|trainfirst|F or N|S only|0.5, 0.5|0.5|0.004, 0.99|2/25/2009|GZ2_sup_PLPD5_p5_flipfeature2b|Treating Stars&Artifacts as Featured -- always |In S/N runs, Star/Artifact was lumped in with "Not" but in previous F/N runs 
+|7/15/2016|expertsample|trainfirst|F or N|S&U|0.5, 0.5|0.5|0.004, 0.99|2/25/2009|GZ2_sup_PLPD5_p5_flipfeature2b|Treating Stars&Artifacts as Featured -- always|it was lumped in with Smooth. These two runs -- Star/Artifact STAYS with F
+|7/26/2016|expertsample|trainfirst|S or N|S only|0.5, 0.5|0.5|0.004, 0.99|5/14/2009|in folder S_PLPD5_standard2_norandom2/|Turned off the "random realizations"|Where did that occur?? I can't remember where this was in the code....
+|7/26/2016|expertsample|trainfirst|F or N|S only|0.5, 0.5|0.5|0.004, 0.99|5/14/2009|in folder S_PLPD5_flipfeature2_norandom2/|Turned off the "random realizations"|
+|8/18/2016|expertsample|trainfirst|F or N|S only|0.4, 0.4|0.5|0.004, 0.99|5/14/2009|GZ2_sup_PLPD4_p5_flipfeature2_norand|Change PL,PD|From here on down we're going with F/N, S only, NO random realizations!|
+|8/18/2016|expertsample|trainfirst|F or N|S only|0.6, 0.6|0.5|0.004, 0.99|5/14/2009|GZ2_sup_PLPD6_p5_flipfeature2_norand|Change PL,PD|
+|8/19/2016|expertsample|trainfirst|F or N|S only|0.5, 0.5|0.8|0.004, 0.99|5/14/2009|GZ2_sup_PLPD5_p8_flipfeature2_norand|Change Prior|
+|8/19/2016|expertsample|trainfirst|F or N|S only|0.5, 0.5|0.2|0.004, 0.99|5/14/2009|GZ2_sup_PLPD5_p2_flipfeature2_norand|Change Prior|
+|9/7/2016|expertsample|trainfirst|F or N|S only|0.5, 0.5|0.01|0.004, 0.99|5/14/2009|GZ2_sup_PLPD5_p01_flipfeature2_norand|Change Prior|
+|9/9/2016|expertsample|trainfirst|F or N|S only|0.5, 0.5|0.35|0.004, 0.99|5/14/2009|GZ2_sup_PLPD5_p35_flipfeature2_norand|Change Prior|
+
 
 
 
