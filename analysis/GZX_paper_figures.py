@@ -11,8 +11,7 @@ import matplotlib
 import pdb, sys
 from datetime import *
 import cPickle
-from GZX_SWAP_evaluation import generate_SWAP_eval_report, \
-								calculate_confusion_matrix, \
+from GZX_SWAP_evaluation import generate_SWAP_eval_report, calculate_confusion_matrix, \
 								GZ2_label_SMOOTH_NOT
 
 from find_indices import find_indices
