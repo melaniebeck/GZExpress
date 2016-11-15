@@ -21,7 +21,7 @@ import datetime as dt
 import os, subprocess, sys
 import cPickle
 
-
+ 
 '''
 Workflow:
    access morphology database
@@ -156,8 +156,6 @@ def MachineClassifier(options, args):
                                  for p in train_meta['SWAP_prob']])
 
         """
-        # I CAN'T IN GOOD CONSCIENCE PUBLISH THIS PAPER WITHOUT AT LEAST
-        # TRYING TO MAKE A MORE BALANCED TRAINING SAMPLE FOR THE MACHINE
         labels, counts = np.unique(train_labels, return_counts=True)
 
         majority = np.max(counts)
@@ -353,7 +351,7 @@ def MachineClassifier(options, args):
                 tonights.parameters['trunk'] = survey+'_'+tonights.parameters['start']
                 tonights.parameters['dir'] = os.getcwd()+'/'+tonights.parameters['trunk']
                 
-                filename=tonights.parameters['trunk']+'_'+Name+'.fits'
+                filename=tonights.parameters['dir']+'_'+Name+'.fits'
                 test_meta.write(filename)
 
                 count=0
