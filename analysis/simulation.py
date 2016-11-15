@@ -4,7 +4,6 @@ import subprocess, sys, os, pdb
 from astropy.table import Table, join, vstack
 import numpy as np
 import swap
-from find_indices import find_indices
 #from .errors import SimulationConfigNotSpecified
 
 class Simulation(object):

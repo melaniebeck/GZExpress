@@ -139,7 +139,7 @@ def main():
 	mid_eval2 = Table.read('GZX_evaluation_{0}.txt'.format(mid_name+'_raw_combo'), format='ascii')
 
 	mid_sim = Simulation(config='update_sup_PLPD5_p5_flipfeature2b_norandom2.config',
-						 directory='.',
+						 directory='sims_SWAP/S_PLPD5_p5_ff_norand',
 						 variety='feat_or_not')
 
 

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.gridspec as gridspec
 import matplotlib
-
+import pdb
 
 matplotlib.rcParams.update({'font.size': 20, 
 							'font.family': 'STIXGeneral', 
@@ -19,6 +19,7 @@ matplotlib.rcParams.update({'font.size': 20,
 ###############################################################################
 #			BASELINE RUN
 ###############################################################################
+
 def plot_GZX_baseline(GZX_baseline_run, GZX_baseline_eval, gz2_retired):
 
 	days = np.arange(GZX_baseline_run.days)
