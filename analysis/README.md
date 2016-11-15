@@ -65,6 +65,7 @@ A slew of simulations have been run to explore the parameter space of SWAP. Most
 Simulations that we have performed:
 
 |Date Started|Sample|Train Strategy|Subject Labels|Configuration|PL, PD|Prior|Thresholds|Last GZ2 Day|RunName|NOTES|
+|-----|----|----|----|----|----|----|----|----|----|
 |6/30/2016|expertsample|trainfirst|S or N|S&U|0.5, 0.5|0.3|0.004, 0.99|2/25/2009|GZ2_sup_unsup_0.5_trainfirst_standard2|Using "Expert_label"|Can't run code using "Nair_label" on one and "Expert_label" on the other|
 |6/30/2016|expertsample|trainfirst|S or N|S only|0.5, 0.5|0.3|0.004, 0.99|2/25/2009|GZ2_sup_0.5_trainfirst_standard2|Using "Expert_label"|because the code is all in the same directory. These have to be done in order.|
 |6/29/2016|expertsample|trainfirst|F or N|S&U|0.5, 0.5|0.3|0.004, 0.99|2/25/2009|GZ2_sup_unsup_0.5_trainfirst_flipfeature|Using "Nair_label" |
