@@ -7,7 +7,7 @@ GZ2 classifications are stored in a MySQL database. `swap/mysqldb.py` was create
 In order to reduce the time of each SQL query, tables in the GZ2 db were joined before running SWAP. The script for the particular arrangement can be found in `prepare_gz2sql.py`. 
 
 
-Additionally, a Storage/metadata pickle is required for both the SWAP and Machine components of GZX. This allows SWAP and the Machine to communicate. Each simulation generates its own version of this file through `swap/storage.py` which, in turn, requires `metadata_ground_truth_labels.fits` The latter is created only one time with `create_GZ2_truth_label_catalog.py`.
+Additionally, a Storage Locker pickle is required for both the SWAP and Machine components of GZX. This allows SWAP and the Machine to communicate. Each simulation generates its own version of this file through `swap/storage.py` which, in turn, requires `metadata_ground_truth_labels.fits` The latter is created only one time with `create_GZ2_truth_label_catalog.py`. [This should be a function for `galaxyzoo2.py` Singleton]
 
 Specifically, this file contains 
 	* the feature vectors which the machines train on (morphology indicators measured from the pixel values of the original FITS files for the galaxy images), 
@@ -22,6 +22,8 @@ Specifically, this file contains
 
 ### SWAP Workflow
 `SWAP.py` has been modified to run on a "daily" basis. A config parameter called "increment" controls the timestep in units of days. Only classifications with timestamps within the increment are collected and processed.   
+
+Subjects which cross either the acceptance or rejection thresholds have their tag in the storage locker modifed to *train*
 
 For each night, SWAP creates a slew of output files (report is always True): 
 
@@ -41,17 +43,19 @@ For each night, SWAP creates a slew of output files (report is always True):
 `MachineClassifier.py` also reads the config file in similar fashion to SWAP. The config file now contains several parameters which control how the machine trains. 
 
 Here's what it currently does: 
- * reads `update.config`
- * reads in the metadata pickle
- * selects out the *valid* sample and the *train* sample based on the tags in the metadata pickle
+ * selects out the *valid* sample and the *train* sample based on the tags in the Storage Locker
  * performs cross validation with the training sample to determine appropriate machine hyperparameters
  * creates an **agent** for the machine which tracks the machine's training and validation history 
  * Once the agent has determined the machine is suitably trained, the machine classifier is applied to the *test* sample 
 
 ---
 
-### Machine Shop
-In parallel to `SWAPSHOP.py`, `MachineShop.py` runs `MachineClassifier.py` on timesteps. 
+### SWAPSHOP and MachineShop
+`SWAPSHOP.py` was created to run SWAP in batch mode. This was used to create several Simulations for a variety of input SWAP parameters (individual simulations can be managed with the `simulation.py` class). Similarly, `MachineShop.py` performs batch runs which combine the SWAP Simulation output with the Machine Classifier. 
+
+This is an OFFLINE way to run GZX. It uses the output SWAP files mentioned above as input (along with the Storage Locker) to determine which subjects are classified by the machine each night (instead of SWAP). 
+
+The ONLINE version of GZX hasn't yet had all the kinks worked out. The basic structure of the ONLINE version will first run SWAP.py and then MachineClassifier.py directly afterwards. Both will modify the collection pickle instead of (or in addition to) the Storage Locker. 
 
 
 ### Experiments to run
