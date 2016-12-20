@@ -137,6 +137,7 @@ def MachineClassifier(options, args):
     # stricter sample so that we always have back-up "truth" for each galaxy.
     """
 
+
     try:
         train_meta, train_features = ml.extract_features(train_sample)
         original_length = len(train_meta)

@@ -106,6 +106,33 @@ class StorageLocker(object):
 
         return subsample 
 
+
+    @staticmethod
+    def extract_sample_features(self, data, keys=['M20', 'C', 'E', 'A', 'G'], 
+                                whiten=False):
+        '''
+        INPUTS:
+            astropy Table (or dictionary?)
+        
+        PURPOSE:
+            This function isolates those rows which have well-measured
+            morphological features that can be fed into the machine classifiers, 
+            i.e. no nans or infs
+    
+        RETURNS:
+            original astropy Table with only those entries that pass selection
+            whitened np.array of the morphological parameters    
+        '''
+        morph = np.array([data[k] for k in keys], dtype='float32').T
+
+        # remove those which don't have morph parameters measured
+        training = ((~np.isnan(morph).any(1)) & (~np.isinf(morph).any(1)))
+
+        if whiten:
+            return data[training], whiten(morph[training])
+        else:
+            return data[training], morph[training]
+
        
 
 

@@ -14,6 +14,7 @@ class Simulation(object):
 			print "Shit be fucked"
 			#raise SimulationConfigNotSpecified("A simulation config file must "\
 			#								   "be specified to create a simulation.")
+		
 		self.config = config
 		self.parameters = self.fetchParameters()
 		self.name = self.parameters['survey']
@@ -283,7 +284,7 @@ class Simulation(object):
 		axes.set_yticks(yticks)
 
 		axes.set_xlabel('Days in GZ2 Project')
-		axes.set_ylabel(r'Cumulative retired subjects  [$10^3$]')
+		axes.set_ylabel(r'Cumulative retired subjects $\times$ 1000')
 	
 		axes.legend(loc='upper left',frameon=False)
 

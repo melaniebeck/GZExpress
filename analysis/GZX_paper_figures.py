@@ -13,35 +13,6 @@ from GZX_SWAP_evaluation import generate_SWAP_eval_report, \
 								GZ2_label_SMOOTH_NOT
 from GZX_paper_figure_functions import *
 
-from find_indices import find_indices
-
-
-
-def collect_probabilities(bureau):
-	bureau_stuff = {'PLarray':[],
-					'PDarray':[],
-					'contributions':[],
-					'skills':[],
-					'Ntraining':[],
-					'Ntest':[],
-					'Ntotal':[]}
-
-	for ID in bureau.list():
-		agent = bureau.member[ID]
-		bureau_stuff['PLarray'].append(agent.PL)
-		bureau_stuff['PDarray'].append(agent.PD)
-		bureau_stuff['contributions'].append(agent.contribution)
-		bureau_stuff['skills'].append(agent.skill)
-		bureau_stuff['Ntraining'].append(agent.NT)  
-		bureau_stuff['Ntotal'].append(agent.N)  
-
-	for k,v in bureau_stuff.iteritems():
-		bureau_stuff[k] = np.array(bureau_stuff[k])
-
-	bureau_stuff['Ntest'] = bureau_stuff['Ntotal'] - bureau_stuff['Ntraining']
-
-	return bureau_stuff
-
 
 
 ###############################################################################
@@ -110,11 +81,18 @@ def main():
 	make_volunteer_probabilties_plot = False 
 	make_vote_distributions_plot = False 
 	make_baseline_simulation_plot = False 
-	make_swap_variations_plot = False  
+	make_swap_variations_plot = True  
 	make_swap_gets_it_wrong_plot = False
-	make_moneyplot = False
-	make_morph_distributions_plot = True
+	make_moneyplot = True
+	make_morph_distributions_plot = False
+	make_roc_curves = False
+	calculate_GX_human_effort = False
 
+
+	survey = 'GZ2_sup_PLPD5_p5_flipfeature2b'
+	dir_tertiary = 'tertiary_simulation_output'
+	dir_sim_machine = 'sims_Machine/redo_first_run_raw_combo/'
+	dir_sim_swap = 'sims_SWAP/S_PLPD5_p5_ff_norand/'
 
 	# Load up some GZ2 data
 	# -----------------------------------------------
@@ -136,10 +114,12 @@ def main():
 	mid_name = 'sup_PLPD5_p5_flipfeature2b_norandom2'
 	#stuff = generate_SWAP_eval_report(mid_sim, gz2_metadata, outname=mid_name+'_raw_combo',
 	#								   write_file=True, gz_kind='raw_combo')
-	mid_eval2 = Table.read('GZX_evaluation_{0}.txt'.format(mid_name+'_raw_combo'), format='ascii')
+	mid_eval2 = Table.read('{0}/GZX_evaluation_{1}.txt'.format(dir_tertiary, 
+															   mid_name+'_raw_combo'), 
+						   format='ascii')
 
-	mid_sim = Simulation(config='update_sup_PLPD5_p5_flipfeature2b_norandom2.config',
-						 directory='sims_SWAP/S_PLPD5_p5_ff_norand',
+	mid_sim = Simulation(config='configfiles/update_sup_PLPD5_p5_flipfeature2b_norandom2.config',
+						 directory=dir_sim_swap,
 						 variety='feat_or_not')
 
 
@@ -147,7 +127,8 @@ def main():
 	if make_volunteer_probabilties_plot:
 
 		# Load up the SWAP Simulation AGENT BUREAU
-		bureau = swap.read_pickle('GZ2_sup_PLPD5_p5_flipfeature2b_bureau.pickle', 'bureau')
+		bureau = swap.read_pickle('{0}/{1}_bureau.pickle'.format(dir_sim_swap,
+															     survey), 'bureau')
 		plot_user_probabilities(bureau, 200)
 
 
@@ -163,15 +144,15 @@ def main():
 	""" MAKE MONEY PLOT """
 	if make_moneyplot:
 
-		outfile = 'GZ2_sup_PLPD5_p5_flipfeature2b_RF_accuracy_redo_raw_combo'
+		outfile = '{}/{}_RF_accuracy_redo_raw_combo'.format(dir_tertiary,survey)
 		
 		# this file made by explore_MLagents.py
-		F = open('{}_combo_analysis.pickle'.format(outfile))
+		F = open('{}_combo_analysis.pickle'.format(outfile), 'rb')
 		combo_run = cPickle.load(F)
 		F.close()
 
 		# Load up the Machine bureau
-		F = open('GZ2_sup_PLPD5_p5_flipfeature2b_MLbureau.pickle')
+		F = open('{0}/{1}_MLbureau.pickle'.format(dir_sim_machine, survey),'rb')
 		MLbureau = cPickle.load(F)
 		F.close()
 
@@ -184,8 +165,8 @@ def main():
 		# Plotting FEAT vs NOT, FALSE POS & FALSE NEGs, RETIRED vs NOT RETIRED
 		# to do all that, need files that were created.... GZX_SWAP_eval?
 		outfile = 'GZ2_sup_PLPD5_p5_flipfeature2b_RF_accuracy_redo_raw_combo'
-		machine_retired = Table.read('{}_machine_retired_subjects.fits'.format(outfile))
-		machine_not_retired = Table.read('{}_machine_not_retired_subjects.fits'.format(outfile))
+		machine_retired = Table.read('tertiary_simulation_output/{}_machine_retired_subjects.fits'.format(outfile))
+		machine_not_retired = Table.read('tertiary_simulation_output/{}_machine_not_retired_subjects.fits'.format(outfile))
 
 		plot_morph_params_1D(machine_retired, machine_not_retired, gz2_metadata, outfile)
 
@@ -194,17 +175,21 @@ def main():
 	if make_swap_gets_it_wrong_plot:
 
 		# Compare SWAP-retired subjects to various parameters in the GZ2 Main Catalog
-		bigfuckingtable = Table.read('../GZ2ASSETS_NAIR_MORPH_MAIN.fits')
+		bigfuckingtable = Table.read('../SpaceWarps/analysis/GZ2ASSETS_NAIR_MORPH_MAIN.fits')
 		gz2_bigfuckingtable = join(gz2_metadata, bigfuckingtable, keys='id')
 		
 		all_retired = mid_sim.fetchCatalog(mid_sim.retiredFileList[-1])
 		gz2_baseline = join(gz2_bigfuckingtable, all_retired, keys='zooid')
 
 		tps2, fps2, tns2, fns2 = calculate_confusion_matrix(gz2_baseline[gz2_baseline['P']>0.3],
-											   		gz2_baseline[gz2_baseline['P']<0.3],
-							   						smooth_or_not=False, gz_kind='raw')
-					   					
-		swap_gets_it_wrong(fps, fns, gz2_baseline)
+											   				gz2_baseline[gz2_baseline['P']<0.3],
+							   								smooth_or_not=False, gz_kind='raw_combo')
+		
+		correct = vstack([tps2, tns2])
+		print len(correct)
+
+		swap_gets_it_wrong(fps2, fns2, correct)
+
 
 
 	""" MAKE VOTE DISTRIBUTION PLOT """
@@ -214,83 +199,201 @@ def main():
 		plot_vote_distributions(gz2_metadata, mid_sim)
 
 
+	if calculate_GX_human_effort: 
+
+		mlbureaufile = 'sims_Machine/redo_first_run_raw_combo/GZ2_sup_PLPD5_p5_flipfeature2b_MLbureau.pickle'
+		MLbureau = swap.read_pickle(mlbureaufile,'bureau')
+
+		machine_meta = 'sims_Machine/redo_first_run_raw_combo/GZ2_sup_PLPD5_p5_flipfeature2b_metadata.pickle'
+		all_subjects = swap.read_pickle(machine_meta, 'metadata').subjects
+
+		#subjects = all_subjects[all_subjects['retired_date']!='2016-09-10']
+		mclass = all_subjects[all_subjects['MLsample']=='mclas']
+
+		swaps = all_subjects[(all_subjects['MLsample']=='train') | 
+							 (all_subjects['MLsample']=='valid')]
+
+
+		catalog = mid_sim.fetchCatalog(mid_sim.retiredFileList[-1])
+		catalog['SDSS_id'] = catalog['zooid']
+
+		# How many machine-retired subjects would have been retired by SWAP anyway? 
+		#swap_mach_retired = join(catalog, mclass, keys='SDSS_id')
+		swap_retired = join(catalog, swaps, keys='SDSS_id')
+
+		# Assume that only Human Effort came from training sample
+		effort = np.sum(swap_retired['Nclass'])
+		print effort
+
+		# LOOK AT MOST IMPORTANT FEATURES FOR MACHINE
+		machine = MLbureau.member['RF_accuracy']
+		trainhist = machine.traininghistory
+
+		models = trainhist['Model']
+
+		for i, model in enumerate(models):
+
+			if i==0:
+				feature_importances = model.feature_importances_
+
+			else: 
+				feature_importances = np.vstack([feature_importances, 
+												 model.feature_importances_])
+
+
+		labels = ['M$_{20}$', '$C$', '$1-b/a$', '$A$', '$G$']
+		fi = feature_importances
+
+		avg, std = [], []
+		for i in range(5):
+			avg.append(np.mean(fi[:,i]))
+			std.append(np.std(fi[:,i]))
+
+		avg = np.array(avg)
+		std = np.array(std)
+		labels = np.array(labels)
+
+		sort_indices = np.argsort(avg)
+
+		ind = np.arange(len(labels))
+
+		pdb.set_trace()
+
+		fig, ax = plt.figure(figsize=(11,8))
+		rects1 = ax.bar(ind, avg[sort_indices], color='red', 
+						yerr=std[sort_indices], ecolor='black', align='center')
+
+		ax.set_ylabel('Feature Importance')
+		ax.set_xticks(ind)
+		ax.set_xticklabels(labels[sort_indices])
+		ax.set_ylim(0, 0.45)
+		ax.set_yticks([0., .1, .2, .3, .4])
+
+		plt.savefig('RF_feature_importance_4paper.pdf')
+		plt.show()
+
+		pdb.set_trace()
+
+
+
+	if make_roc_curves:
+		candidateFileList = mid_sim.fetchFileList(kind='candidate')
+		"""
+		# SWAP situation at ~30 days into simulation
+		candidates1 = mid_sim.fetchCatalog(candidateFileList[30])
+		rejected1 = mid_sim.fetchCatalog(mid_sim.rejectedFileList[30])
+		swap_subjects1 = np.concatenate([candidates1, rejected1])
+		subjects1 = join(gz2_metadata, swap_subjects1, keys='zooid')
+
+		# SWAP situation at ~60 days into simualtion
+		candidates2 = mid_sim.fetchCatalog(candidateFileList[60])
+		rejected2 = mid_sim.fetchCatalog(mid_sim.rejectedFileList[60])
+		swap_subjects2 = np.concatenate([candidates2, rejected2])
+		subjects2 = join(gz2_metadata, swap_subjects2, keys='zooid')
+		"""
+		# SWAP situation at the end of the siulation
+		candidates3 = mid_sim.fetchCatalog(candidateFileList[-1])
+		rejected3 = mid_sim.fetchCatalog(mid_sim.rejectedFileList[-1])
+		swap_subjects3 = np.concatenate([candidates3, rejected3])
+		subjects3 = join(gz2_metadata, swap_subjects3, keys='zooid')
+
+		subject_sets = [subjects3]#subjects1, subjects2, 
+
+		plot_roc_curve(subject_sets, smooth_or_not=False, gz_kind='raw_combo', swap=True, outname=None)
+
+
+
 	""" MAKE SWAP VARIATIONS PLOT(S) """
 	if make_swap_variations_plot:
 
+		#"""
 		# Load up simulations varying subject PRIOR
 		# -------------------------------------------------------
 		low_p = 'sup_PLPD5_p2_flipfeature2_norand'
 		high_p = 'sup_PLPD5_p8_flipfeature2_norand'
 		p35 = 'sup_PLPD5_p35_flipfeature2_norand'
 
-		low_p_eval2 = Table.read('GZX_evaluation_{0}.txt'.format(low_p+'_raw_combo'), format='ascii')
-		high_p_eval2 = Table.read('GZX_evaluation_{0}.txt'.format(high_p+'_raw_combo'), format='ascii')
-		p35_eval2 = Table.read('GZX_evaluation_{0}.txt'.format(p35+'_raw_combo'), format='ascii')
+		low_p_eval2 = Table.read('tertiary_simulation_output/GZX_evaluation_{0}.txt'.format(low_p+'_raw_combo'), format='ascii')
+		high_p_eval2 = Table.read('tertiary_simulation_output/GZX_evaluation_{0}.txt'.format(high_p+'_raw_combo'), format='ascii')
+		#p35_eval2 = Table.read('tertiary_simulation_output/GZX_evaluation_{0}.txt'.format(p35+'_raw_combo'), format='ascii')
 
-		low_p_sim = Simulation(config='update_sup_PLPD5_p2_flipfeature2_norand.config',
-							   directory='S_PLPD5_p2_ff_norand/',
+		low_p_sim = Simulation(config='configfiles/update_sup_PLPD5_p2_flipfeature2_norand.config',
+							   directory='sims_SWAP/S_PLPD5_p2_ff_norand/',
 							   variety='feat_or_not')
 
-		high_p_sim = Simulation(config='update_sup_PLPD5_p8_flipfeature2_norand.config',
-								directory='S_PLPD5_p8_ff_norand/',
+		high_p_sim = Simulation(config='configfiles/update_sup_PLPD5_p8_flipfeature2_norand.config',
+								directory='sims_SWAP/S_PLPD5_p8_ff_norand/',
 								variety='feat_or_not')
 
-		p35_sim = Simulation(config='update_sup_PLPD5_p35_flipfeature2_norand.config',
-							directory='S_PLPD5_p35_ff_norand/',
-							variety='feat_or_not')
+		#p35_sim = Simulation(config='configfiles/update_sup_PLPD5_p35_flipfeature2_norand.config',
+		#					directory='sims_SWAP/S_PLPD5_p35_ff_norand/',
+		#					variety='feat_or_not')
 
-
+		#"""
 		# Load up simulations for varying user PL/PD
 		# -------------------------------------------------------
 		low_plpd = 'sup_PLPD4_p5_flipfeature2_norand'
 		high_plpd = 'sup_PLPD6_p5_flipfeature2_norand'
 
-		low_plpd_eval2 = Table.read('GZX_evaluation_{0}.txt'.format(low_plpd+'_raw_combo'), format='ascii')
-		high_plpd_eval2 = Table.read('GZX_evaluation_{0}.txt'.format(high_plpd+'_raw_combo'), format='ascii')
+		low_plpd_eval2 = Table.read('tertiary_simulation_output/GZX_evaluation_{0}.txt'.format(low_plpd+'_raw_combo'), format='ascii')
+		high_plpd_eval2 = Table.read('tertiary_simulation_output/GZX_evaluation_{0}.txt'.format(high_plpd+'_raw_combo'), format='ascii')
 
-		low_plpd_sim = Simulation(config='update_sup_PLPD4_p5_flipfeature2_norand.config',
-								  directory='S_PLPD4_p5_ff_norand/',
+		low_plpd_sim = Simulation(config='configfiles/update_sup_PLPD4_p5_flipfeature2_norand.config',
+								  directory='sims_SWAP/S_PLPD4_p5_ff_norand/',
 								  variety='feat_or_not')
 
-		high_plpd_sim = Simulation(config='update_sup_PLPD6_p5_flipfeature2_norand.config',
-								   directory='S_PLPD6_p5_ff_norand/',
+		high_plpd_sim = Simulation(config='configfiles/update_sup_PLPD6_p5_flipfeature2_norand.config',
+								   directory='sims_SWAP/S_PLPD6_p5_ff_norand/',
 								   variety='feat_or_not')
 
+
+		#"""
 		# VARY PRIOR
 		fig = plt.figure(figsize=(11,16))
+		plt.rc('text', usetex=True)
+
 		gs = gridspec.GridSpec(2,1)
-		gs.update(wspace=0.1, hspace=0.01)
+		gs.update(wspace=0.05, hspace=0.01)
 
 		ax = fig.add_subplot(gs[0])
-		plot_GZX_evaluation_spread(92, low_p_eval2, mid_eval2, high_p_eval2, p35_eval2,
-							 	   'compare_PLPD_4paper', ax)
+		plot_GZX_evaluation_spread(92, low_p_eval2, mid_eval2, high_p_eval2,
+							 	   outfile='compare_PLPD_4paper', ax=ax)
 
 		ax2 = fig.add_subplot(gs[1])
-		plot_GZX_cumulative_retirement_spread(92, low_p_sim, mid_sim, high_p_sim, p35_sim,
-											  gz2_cum_sub_retired, 'compare_prior_4paper', ax2)
+		plot_GZX_cumulative_retirement_spread(92, low_p_sim, mid_sim, high_p_sim,
+											  gz2_cum_sub_retired, 
+											  outfile='compare_prior_4paper', ax=ax2)
+		
+		fig.suptitle(r'$0.1 \le \mathrm{Subject~Prior} \le 0.8$', fontsize=30)    
 
-		gs.tight_layout(fig)
-		plt.savefig('GZX_eval_and_retirement_prior_spread_4paper_v2.png')
+		gs.tight_layout(fig, rect=[0, 0, 1, 0.97])
+		plt.savefig('GZX_eval_and_retirement_prior_spread_4paper_v2.pdf')
 		plt.show()
 		plt.close()
-
+		#"""
 		# -----------------------------------------------------------
 		# VARY PLPD
 		fig = plt.figure(figsize=(11,16))
+		plt.rc('text', usetex=True)
+
 		gs = gridspec.GridSpec(2,1)
-		gs.update(wspace=0.1, hspace=0.01)
+		gs.update(wspace=0.01, hspace=0.01)
 
 
 		ax = fig.add_subplot(gs[0])
 		plot_GZX_evaluation_spread(92, low_plpd_eval2, mid_eval2, high_plpd_eval2, 
-							 	   'compare_PLPD_4paper', ax)
+							 	   outfile='compare_PLPD_4paper', ax=ax)
 
 		ax2 = fig.add_subplot(gs[1])
 		plot_GZX_cumulative_retirement_spread(92, low_plpd_sim, mid_sim, high_plpd_sim, 
-											  gz2_cum_sub_retired, 'compare_prior_4paper', ax2)
+											  gz2_cum_sub_retired, 
+											  outfile='compare_prior_4paper', ax=ax2)
 
-		gs.tight_layout(fig)
-		plt.savefig('GZX_eval_and_retirement_PLPD_spread_4paper_v2.png')
+
+		fig.suptitle(r'$(0.4, 0.4) \le \mathrm{Confusion~Matrix} \le (0.6, 0.6)$', fontsize=30)    
+
+		gs.tight_layout(fig, rect=[0, 0, 1, 0.97])
+		plt.savefig('GZX_eval_and_retirement_PLPD_spread_4paper_v2.pdf')
 		plt.show()
 		plt.close()
 		#"""

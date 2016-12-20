@@ -75,7 +75,7 @@ def GZ2_label_SMOOTH_NOT(GZ2_subjects,type='raw'):
     #for sm,d,st in zip(smooth,disk,star):
     for sm, cm in zip(smooth, combo):
         if sm == np.max([sm, cm]):
-            label.append(truth['SMOOTH']
+            label.append(truth['SMOOTH'])
         elif cm == np.max([sm, cm]):
             label.append(truth['NOT'])
         else:
