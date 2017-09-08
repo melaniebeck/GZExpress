@@ -1,3 +1,6 @@
+ #!/usr/bin/env python -W ignore::DeprecationWarning
+
+
 from __future__ import division
 
 from simulation import Simulation
@@ -12,8 +15,6 @@ from GZX_SWAP_evaluation import generate_SWAP_eval_report, \
 								calculate_confusion_matrix, \
 								GZ2_label_SMOOTH_NOT
 from GZX_paper_figure_functions import *
-
-
 
 ###############################################################################
 #			MAIN
@@ -78,12 +79,13 @@ def main():
 	"""
 
 
-	make_volunteer_probabilties_plot = False 
+	make_volunteer_probabilties_plot = False
+	make_subject_trajectory_plot = True 
 	make_vote_distributions_plot = False 
 	make_baseline_simulation_plot = False 
-	make_swap_variations_plot = True  
+	make_swap_variations_plot = False  
 	make_swap_gets_it_wrong_plot = False
-	make_moneyplot = True
+	make_moneyplot = False
 	make_morph_distributions_plot = False
 	make_roc_curves = False
 	calculate_GX_human_effort = False
@@ -127,9 +129,17 @@ def main():
 	if make_volunteer_probabilties_plot:
 
 		# Load up the SWAP Simulation AGENT BUREAU
-		bureau = swap.read_pickle('{0}/{1}_bureau.pickle'.format(dir_sim_swap,
-															     survey), 'bureau')
+		picklename = '{0}/{1}_bureau.pickle'.format(dir_sim_swap,survey)
+		bureau = swap.read_pickle(picklename, 'bureau')
 		plot_user_probabilities(bureau, 200)
+
+
+	if make_subject_trajectory_plot:
+
+		# Load up the SWAP Simulation AGENT BUREAU
+		picklename = '{0}/{1}_collection.pickle'.format(dir_sim_swap,survey)
+		collection = swap.read_pickle(picklename, 'collection')
+		plot_subject_trajectories(collection, 200)
 
 
 	""" MAKE BASELINE SIMULATION PLOT """
@@ -143,6 +153,7 @@ def main():
 
 	""" MAKE MONEY PLOT """
 	if make_moneyplot:
+		
 
 		outfile = '{}/{}_RF_accuracy_redo_raw_combo'.format(dir_tertiary,survey)
 		
@@ -186,7 +197,7 @@ def main():
 							   								smooth_or_not=False, gz_kind='raw_combo')
 		
 		correct = vstack([tps2, tns2])
-		print len(correct)
+		#print len(correct)
 
 		swap_gets_it_wrong(fps2, fns2, correct)
 
@@ -257,7 +268,7 @@ def main():
 
 		ind = np.arange(len(labels))
 
-		pdb.set_trace()
+		#pdb.set_trace()
 
 		fig, ax = plt.figure(figsize=(11,8))
 		rects1 = ax.bar(ind, avg[sort_indices], color='red', 
@@ -272,7 +283,7 @@ def main():
 		plt.savefig('RF_feature_importance_4paper.pdf')
 		plt.show()
 
-		pdb.set_trace()
+		#pdb.set_trace()
 
 
 

@@ -21,6 +21,7 @@ class Simulation(object):
 		self.directory = directory
 		self.variety = variety
 
+		pdb.set_trace()
 		self.detectedFileList = self.fetchFileList(kind='detected')
 		self.rejectedFileList = self.fetchFileList(kind='rejected')
 		self.retiredFileList = self.fetchFileList(kind='retired')
@@ -106,6 +107,7 @@ class Simulation(object):
 		''' Fetch the list of catalogs which contain the # of subjects/day '''
 		try:
 			cmd = "ls %s/%s_*/*%s_catalog.txt"%(self.directory, self.name, kind)
+			#cmd = "ls ./sims_SWAP/S_PLPD5_p5_ff_norand/"
 			cmdout = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
 			filelist = cmdout.stdout.read().splitlines()
 		except:
@@ -188,34 +190,36 @@ class Simulation(object):
 		if self.variety == 'smooth_or_not':
 			labels = ["'Smooth' (%i)"%len(num_detected),
 					  "'Not' (%i)"%len(num_rejected)]
-			colors = ['orange','yellow']
+			colors = ['orange','royalblue']
 			edgecolors = ['darkorange','gold']
 		else:
 			labels = ["'Featured' (%i)"%len(num_detected),
 					  "'Not' (%i)"%len(num_rejected)]
-			colors = ['yellow', 'orange']
-			edgecolors = ['gold','darkorange']
+			colors = ['royalblue', 'orange']
+			edgecolors = ['mediumblue','darkorange']
 
 		# Plot the number of clicks till retirement for the detected-
 		# and rejected-labeled subjects
 
 		bins = np.arange(0, np.max(num_combined)+1, 1)
 
-
 		if plot_combined:
+			# To make Frequency histogram, create a weighting array
 			weights = np.ones_like(num_combined, dtype='float64')/len(num_combined)
 
+			# To plot the combined arrays, make them the same size and fill the enxtras with -1
 			det = np.concatenate([num_detected, np.full(len(num_rejected), -1, dtype='int64')])
 			rej = np.concatenate([num_rejected, np.full(len(num_detected), -1, dtype='int64')])
 			
 			axes.hist(num_combined, weights=weights, bins=bins, range=(0,50), 
-				  	  histtype='stepfilled', alpha=0.5, color='lightsteelblue', 
-				  	  edgecolor='steelblue', lw=2, label='SWAP')#'All Retired (%i)'%len(num_combined)
+				  	  histtype='step', alpha=1., color='black', 
+				  	  edgecolor='black', lw=3, label='All Retired')#'All Retired (%i)'%len(num_combined)
+			
+			axes.hist(rej, weights=weights, bins=bins, range=(0,50), histtype='stepfilled',
+					  color=colors[1], edgecolor=edgecolors[1], lw=3, alpha=0.6, label="'Not'")
+			axes.hist(det, weights=weights, bins=bins, range=(0,50), histtype='stepfilled',
+					  color=colors[0], edgecolor=edgecolors[0], lw=3, alpha=0.5, label="'Featured'")
 
-			axes.hist(det, weights=weights, bins=bins, range=(0,50), histtype='step',
-					  color='steelblue', hatch='/', lw=2, label="'Featured'")
-			axes.hist(rej, weights=weights, bins=bins, range=(0,50), histtype='step',
-					  color='steelblue', hatch='\\', lw=2, label="'Not'")
 
 		else:
 			axes.hist(num_detected, normed=True, bins=bins, range=(0,50), 
@@ -256,11 +260,11 @@ class Simulation(object):
 		else:
 			if self.variety == 'smooth_or_not':
 				labels = ["GZX:'Smooth'", "GZX:'Not'"]
-				colors = ['orange','yellow']
+				colors = ['orange','royalblue']
 				edgecolors = ['darkorange','gold']
 			else:
 				labels = ["GZX:'Featured'", "GZX:'Not'"]
-				colors = ['yellow', 'orange']
+				colors = ['royalblue', 'orange']
 				edgecolors = ['gold','darkorange']
 
 			axes.fill_between(dates, rejected, detected+rejected,

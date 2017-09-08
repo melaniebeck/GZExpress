@@ -1,5 +1,5 @@
 import swap
-import compare_SWAP_GZ2 as utils
+#import compare_SWAP_GZ2 as utils
 from simulation import Simulation
 
 import os, sys, subprocess, getopt
@@ -131,7 +131,6 @@ def MachineShop(args):
 
         last_night = SWAP_retired_by_tonight
 
-
         print "Retired by this day:", len(last_night)
 
         print ""
@@ -178,6 +177,8 @@ if __name__ == '__main__':
     
     MachineShop(args)
     
+
+
     """ This whole approach is stupid.
     # Determine amount of SWAP output 
     # If there was a successful run, there should be 

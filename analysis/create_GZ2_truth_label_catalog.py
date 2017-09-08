@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pdb
 import sys
 
@@ -180,7 +181,7 @@ def main():
     # This one has the "category" columns like gz2_..._better.fits with the 
     # regular columns of GZ2assets_Nair... but WITHOUT stripe82_coadd objects
     # RIGHT JOINED assets+gzmain (all the obj in assets; w or w/o match in gz)
-    assets = Table.read('GZ2ASSETS_NAIR_MORPH_MAIN.fits')
+    assets = Table.read('../SpaceWarps/analysis/GZ2ASSETS_NAIR_MORPH_MAIN.fits')
     #expert = Table.read('expert_sample.fits')
 
     #test1 = join(expert,assets, keys='JID')
@@ -190,7 +191,7 @@ def main():
     # Should include at LEAST these columns:
     # [SDSS objid, Nair JID, RA, DEC, Rp, C, A, G, M20, elipt, Nair Label, 
     # GZ2 user label, Expert label, MLsample]
-    #pdb.set_trace()
+    pdb.set_trace()
     metadata = Table(names=('SDSS_id', 'JID', 'asset_id',
                             'stripe82','extra_original', 
                             'ra', 'dec', 'Rp', 

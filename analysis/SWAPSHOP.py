@@ -90,7 +90,7 @@ while more_to_do:
     # Define "today's" logfile name -- the count specifies which day
     logfile = "%s/GZ2_%i.log"%(log_dir,count)
 
-    # run SWAP.py with the chosen configfile (and specific logfile?)
+    # run SWAP.py with the chosen configfile 
     os.system("python SWAP.py %s > %s"%(config,logfile))
     #os.system("python SWAP.py %s"%(config))
 

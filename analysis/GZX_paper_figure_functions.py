@@ -3,22 +3,26 @@ import matplotlib.ticker as ticker
 import matplotlib.gridspec as gridspec
 from matplotlib.collections import LineCollection
 from matplotlib.legend_handler import HandlerLine2D
+import matplotlib.gridspec as gridspec
+
+import explore_SWAP_eqns as volsim
 
 from datetime import *
 import matplotlib as mpl
 import numpy as np
 import pdb
 
-mpl.rcParams.update({'font.size': 26, 
+
+mpl.rcParams.update({'font.size': 24, 
 							'font.family': 'STIXGeneral', 
 							'mathtext.fontset': 'stix',
-							'xtick.labelsize':26,
-							'ytick.labelsize':26,
+							'xtick.labelsize':18,
+							'ytick.labelsize':18,
 							'xtick.major.width':2,
 							'ytick.major.width':2,
 							'axes.linewidth':2,
 							'lines.linewidth':3,
-							'legend.fontsize':26})
+							'legend.fontsize':18})
 
 
 def collect_probabilities(bureau):
@@ -46,6 +50,17 @@ def collect_probabilities(bureau):
 
 	return bureau_stuff
 
+
+def collect_subject_probabilities(collection, kind):
+	probabilities, exposures = [], []
+
+	for ID in collection.list():
+		subject = collection.member[ID]
+		if subject.kind == kind:
+			probabilities.append(subject.mean_probability)
+			exposures.append(subject.exposure)
+
+	return np.array(probabilities)
 
 ###############################################################################
 #			BASELINE RUN
@@ -564,7 +579,7 @@ def plot_user_probabilities(bureau, number_of_users):
 
 	# Training received:
 	size = 4*Ntraining + 6.0
-	scatterax.scatter(PL, PD, s=size, color='purple', alpha=0.5)
+	scatterax.scatter(PL, PD, s=size, color='green', alpha=0.5)
 
 	# --------------------------  RIGHT HIST  -------------------------------
 	# Axis details
@@ -576,8 +591,8 @@ def plot_user_probabilities(bureau, number_of_users):
 
 
 	righthistax.axhline(0.5, color='gray', linestyle='dotted')
-	righthistax.hist(PD_full, bins=bins, orientation='horizontal', color='tomato', 
-					 edgecolor='tomato', histtype='stepfilled', alpha=0.7)
+	righthistax.hist(PD_full, bins=bins, orientation='horizontal', color='orange', 
+					 edgecolor='orange', histtype='stepfilled', alpha=0.7)
 
 	# --------------------------  UPPER HIST  -------------------------------
 	# Axis details
@@ -588,12 +603,11 @@ def plot_user_probabilities(bureau, number_of_users):
 	lowerhistax.set_axis_off()
 
 	lowerhistax.axvline(0.5, color='gray', linestyle='dotted')
-	lowerhistax.hist(PL_full, bins=bins, histtype='stepfilled', color='yellow', 
-					 edgecolor='yellow', alpha=0.7)
+	lowerhistax.hist(PL_full, bins=bins, histtype='stepfilled', color='royalblue', 
+					 edgecolor='royalblue', alpha=0.7)
 
 	plt.savefig('test_user_probs.pdf',dpi=300)
 	plt.show()
-
 
 
 ###############################################################################
@@ -601,24 +615,50 @@ def plot_user_probabilities(bureau, number_of_users):
 ###############################################################################
 def plot_vote_distributions(gz2_baseline, mid_sim):
 
-	gz2_clicks = gz2_baseline['total_classifications']
+	def fd(x):
+		iqr = np.subtract(*np.percentile(x, [75, 25]))
+		return 2.0 * iqr * np.array(x).size ** (-1.0 / 3.0)
+
+	#gz2_clicks = gz2_baseline['total_classifications']
 
 	#"""
 	fig = plt.figure(figsize=(11, 8))
 	ax = fig.add_subplot(111)
-	ax.set_xlabel('Classifications till retirement')
-	ax.set_ylabel('Proportion')
+	ax.set_xlabel('Classifications till retirement', fontsize=30)
+	ax.set_ylabel('Frequency', fontsize=30)
 
 	mid_sim.plot_clicks_till_retired(ax, plot_combined=True)
 
-	weights = np.ones_like(gz2_clicks, dtype='float64')/len(gz2_clicks)
-	ax.hist(gz2_clicks, weights=weights, 
-			bins=np.arange(0, np.max(gz2_clicks)+1, 1), 
-			color='darkblue', histtype='stepfilled', alpha=0.5,
-			label='GZ2')
-	ax.set_ylim(0,0.15)
+	not_results = volsim.simulate_NOT_retirement_fixed_matrices(2000, pNOT=0.65, pYES=0.63)
+	not_Ndist = not_results['subj_Nclass_dist']
 
-	ax.legend(loc='upper center', frameon=False)
+	feat_results = volsim.simulate_FEAT_retirement_fixed_matrices(1000, pYES=0.63, pNOT=0.65)
+	feat_Ndist = feat_results['subj_Nclass_dist']
+
+
+	width = 2.
+
+	bins = np.arange(np.min(not_Ndist), np.max(not_Ndist)+width, width)
+	weights = np.ones_like(not_Ndist, dtype='float64')/len(not_Ndist)
+	ax.hist(not_Ndist, bins=bins, normed=True, color='orange', edgecolor='darkorange',
+			 histtype='step', lw=3, ls='--', alpha=.6, 
+			 label=r"Fixed $\mathcal{M}$: 'Not'")
+
+	bins = np.arange(np.min(feat_Ndist), np.max(feat_Ndist)+width, width)
+	weights = np.ones_like(feat_Ndist, dtype='float64')/len(feat_Ndist)
+	ax.hist(feat_Ndist, bins=bins, normed=True, color='royalblue', edgecolor='mediumblue', 
+			 histtype='step', lw=3, ls='--', alpha=.5, 
+			 label=r"Fixed $\mathcal{M}$: 'Featured'")
+
+
+	#weights = np.ones_like(gz2_clicks, dtype='float64')/len(gz2_clicks)
+	#ax.hist(gz2_clicks, weights=weights, 
+	#		bins=np.arange(0, np.max(gz2_clicks)+1, 1), 
+	#		color='darkblue', histtype='stepfilled', alpha=0.5,
+	#		label='GZ2')
+	ax.set_ylim(0,0.13)
+	ax.set_xlim(0, 60)
+	ax.legend(loc='upper right', frameon=False)
 	
 	"""
 	# ---------------- Plot votes against each other ----------------------
@@ -650,7 +690,7 @@ def plot_vote_distributions(gz2_baseline, mid_sim):
 	"""
 
 	plt.tight_layout()
-	plt.savefig('GZX_clicks_till_retired_baseline.pdf')
+	plt.savefig('GZX_clicks_till_retired_withToyModel.pdf')
 	plt.show()
 
 	pdb.set_trace()
@@ -676,51 +716,97 @@ def swap_gets_it_wrong(fps, fns, full_SWAP):
 	fps_color = 'darkorchid'
 	fns_color = 'teal'
 
-	#fig = plt.figure(figsize=(15,8))
-	#gs = gridspec.GridSpec(1,2)
-	fig = plt.figure(figsize=(10,8))
 
-	# Is there a difference in the SIZE/magnitude distribution?
-	#ax = fig.add_subplot(gs[1])
+	## ---------- 2017-23-02:  FOR THE REFEREE ----------- ##
+	# Is there a difference in SIZE or magnitude distribution?
+	fig = plt.figure(figsize=(10,5))
 
+	min_r50 = np.min(full_SWAP['PETROR50_R'])
+	max_r50 = np.max(full_SWAP['PETROR50_R'])
+	min_rmag = np.min(full_SWAP['PETROMAG_R']-full_SWAP['EXTINCTION_R'])
+	max_rmag = np.max(full_SWAP['PETROMAG_R']-full_SWAP['EXTINCTION_R'])
+
+	size_bins = np.arange(min_r50, max_r50+1, 1)
+	mag_bins = np.arange(min_rmag, max_rmag+.5, .5)
+
+	cbins = np.arange(np.min(full_SWAP['C_1'][~np.isnan(full_SWAP['C_1'])]), 
+		np.max(full_SWAP['C_1'][~np.isnan(full_SWAP['C_1'])])+.5, .5)
+	gbins = np.arange(0, 1.05, .05)
+
+	ax = fig.add_subplot(121)
 	"""
-	xbins = np.arange(10, 18., 0.5)
-	ybins = np.arange(0, 26, 1)
+	ax.hist(full_SWAP['PETROR50_R'], bins=size_bins, normed=True, 
+			histtype='step', ls=':', lw=1, color='k', label='Correct')
 
-	H, x_, y_ = np.histogram2d(full_SWAP['PETROMAG_R']-full_SWAP['EXTINCTION_R'],
-							   full_SWAP['PETROR50_R'], bins=(xbins, ybins))
+	ax.hist(fps['PETROR50_R'], bins=size_bins, normed=True, 
+			histtype='step',  color=fps_color, lw=2, label='False Positives')
 
-	X, Y = np.mgrid[xbins[0]:xbins[-1]:0.5, ybins[0]:ybins[-1]:1]
-	
-	ax.contour(X, Y, H, colors='k', lw=2, levels=[1e4, 1e3, 1e2, 1e1])
+	ax.hist(fns['PETROR50_R'], bins=size_bins, normed=True, 
+			histtype='step', ls='-', lw=2, color=fns_color, label='False Negatives')
+	ax.set_xlabel(r'$R_{50}$ (arcsec)')
+	ax.set_xlim(0., 20.)
+	"""
+	#pdb.set_trace()
+	ax.hist(full_SWAP['C_1'][~np.isnan(full_SWAP['C_1'])], bins=cbins, normed=True, 
+			histtype='step', ls=':', lw=1, color='k', label='Correct')
+
+	ax.hist(fps['C_1'][~np.isnan(fps['C_1'])], bins=cbins, normed=True, 
+			histtype='step',  color=fps_color, lw=2, label='False Positives')
+
+	ax.hist(fns['C_1'][~np.isnan(fns['C_1'])], bins=cbins, normed=True, 
+			histtype='step', ls='-', lw=2, color=fns_color, label='False Negatives')
+	ax.set_xlim(0., 6)
+
+	x0,x1 = ax.get_xlim()
+	y0,y1 = ax.get_ylim()
+	ax.set_aspect(abs(x1-x0)/abs(y1-y0))
+
+	ax.legend(loc='best', frameon=False)
 
 
-	Hfps, x_, y_ = np.histogram2d(fps['PETROMAG_R']-fps['EXTINCTION_R'], 
-								  fps['PETROR50_R'], bins=(xbins, ybins))
+	ax = fig.add_subplot(122)
+	ax.hist(full_SWAP['A_1'][~np.isnan(full_SWAP['A_1'])], bins=gbins, normed=True, 
+			histtype='step', ls=':', lw=1, color='k', label='Correct')
 
+	ax.hist(fps['A_1'][~np.isnan(fps['A_1'])], bins=gbins, normed=True, 
+			histtype='step',  color=fps_color, lw=2, label='False Positives')
 
-   	ax.contour(X, Y, Hfps, colors=fps_color, lw=2, levels=[1e4, 1e3, 1e2, 1e1])
+	ax.hist(fns['A_1'][~np.isnan(fns['A_1'])], bins=gbins, normed=True, 
+			histtype='step', ls='-', lw=2, color=fns_color, label='False Negatives')
+	ax.set_xlabel(r'$R_{50}$ (arcsec)')
 
-	ax.scatter(fns['PETROMAG_R']-fns['EXTINCTION_R'], fns['PETROR50_R'], 
-    		   color=fns_color, alpha=.6, marker='.')
+	ax.hist(full_SWAP['G_1'][~np.isnan(full_SWAP['G_1'])], bins=gbins, normed=True, 
+			histtype='step', ls=':', lw=1, color='dimgrey', label='Correct')
 
-	ax.axhline(5., ls='--', color='k', lw=0.5)
+	ax.hist(fps['G_1'][~np.isnan(fps['G_1'])], bins=gbins, normed=True, 
+			histtype='step',  color='purple', lw=2, label='False Positives')
 
-	small_tot = np.sum(full_SWAP['PETROR50_R'] <= 5.)
-	small_fps = np.sum(fps['PETROR50_R'] <= 5.)
-	small_fns = np.sum(fns['PETROR50_R'] <= 5.)
+	ax.hist(fns['G_1'][~np.isnan(fns['G_1'])], bins=gbins, normed=True, 
+			histtype='step', ls='-', lw=2, color='blue', label='False Negatives')
+	"""
+	ax.hist(full_SWAP['PETROMAG_R']-full_SWAP['EXTINCTION_R'], bins=mag_bins, 
+			histtype='step', normed=True,  ls=':', lw=1, color='k')
 
-	#fraction = 100*float(small_fps + small_fns) / (len(fps)+len(fns))
-	#ax.text(15., 20., "%.2f%%"%fraction)
+	ax.hist(fps['PETROMAG_R']-fps['EXTINCTION_R'], bins=mag_bins, 
+			histtype='step', normed=True, lw=2, color=fps_color)
 
-	ax.set_ylabel(r'$R_{50}$ (arcsec)')
+	ax.hist(fns['PETROMAG_R']-fns['EXTINCTION_R'], bins=mag_bins,
+	 		histtype='step', normed=True, ls='-',  lw=2, color=fns_color)
+
 	ax.set_xlabel('r magnitude')
-	ax.set_ylim(0., 20.)
-	ax.set_xlim(10., 17.5)
-	#"""
+	ax.set_xlim(12., 17.5)
+	"""
+	x0,x1 = ax.get_xlim()
+	y0,y1 = ax.get_ylim()
+	ax.set_aspect(abs(x1-x0)/abs(y1-y0))
+
+	plt.savefig('swapgetsitwrong_morphs.pdf')
+	plt.show()
+	pdb.set_trace()
+
 
 	# Distribution of Features_or_Disk fraction? 
-	#ax = fig.add_subplot(gs[0])
+	fig = plt.figure(figsize=(10,8))
 	ax = fig.add_subplot(111)
 
 	disk_fraction = 't01_smooth_or_features_a02_features_or_disk_fraction'
@@ -766,9 +852,9 @@ def swap_gets_it_wrong(fps, fns, full_SWAP):
 
 
 	ax.step(fps_bins[:-1], fps_hist*10, where='post', color=fps_color,
-			label=r'False Positives $\times 10$')
+			linewidth=3, label=r'False Positives $\times 10$')
 	ax.step(fns_bins[:-1], fns_hist*100, where='post', color=fns_color, linestyle='--',
-			linewidth=4, label=r'False Negatives $\times 100$')
+			linewidth=3, label=r'False Negatives $\times 100$')
 
 	"""
 	ax.hist(fns_full_length, bins=bins, weights=weights, 
@@ -822,8 +908,11 @@ def plot_morph_params_1D(machine_retired, machine_not_retired, metadata, outfile
 
 	num_sets = len(subsets1)
 
-	colorset2 = ['yellow', 'blue', 'purple']
-	colorset1 = ['tomato', 'red', 'steelblue']
+	colorset2 = ['royalblue', 'blue', 'purple']
+	colorset1 = ['orange', 'red', 'steelblue']
+
+	edgecolor1 = 'darkorange'
+	edgecolor2 = 'mediumblue'
 
 	labels2 = ["'Featured'", 'False Positives', 'Not Retired']
 	labels1 = ["'Not'", 'False Negatives', 'Retired']
@@ -838,10 +927,10 @@ def plot_morph_params_1D(machine_retired, machine_not_retired, metadata, outfile
 		ax = fig.add_subplot(gs[0+i,0])
 		ax.hist(metadata['G'], bins=30, normed=True, range=(.4,.8),alpha=0.5,
 				histtype='step', color='black', lw=3)
-		ax.hist(subset1['G'], bins=30, normed=True, range=(.4,.8),alpha=0.5, 
-				histtype='stepfilled', color=colorset1[i])
-		ax.hist(subset2['G'], bins=30, normed=True, range=(.4,.8),alpha=0.5,
-				histtype='stepfilled', color=colorset2[i])
+		ax.hist(subset1['G'], bins=30, normed=True, range=(.4,.8), lw=2, alpha=0.6, 
+				histtype='stepfilled', color=colorset1[i], edgecolor=edgecolor1)
+		ax.hist(subset2['G'], bins=30, normed=True, range=(.4,.8), lw=2, alpha=0.5,
+				histtype='stepfilled', color=colorset2[i], edgecolor=edgecolor2)
 
 		if i!=num_sets-1:
 			ax.set_xticklabels([])
@@ -855,10 +944,10 @@ def plot_morph_params_1D(machine_retired, machine_not_retired, metadata, outfile
 		ax = fig.add_subplot(gs[0+i,1])
 		ax.hist(metadata['M20'], bins=30, normed=True, range=(-3., -1.), alpha=0.5,
 				histtype='step', color='black', lw=3)
-		ax.hist(subset1['M20'], bins=30, normed=True, range=(-3., -1.), alpha=0.5, 
-				histtype='stepfilled', color=colorset1[i])
-		ax.hist(subset2['M20'], bins=30, normed=True, range=(-3., -1.), alpha=0.5,  
-				histtype='stepfilled', color=colorset2[i])
+		ax.hist(subset1['M20'], bins=30, normed=True, range=(-3., -1.), lw=2, alpha=0.6, 
+				histtype='stepfilled', color=colorset1[i], edgecolor=edgecolor1)
+		ax.hist(subset2['M20'], bins=30, normed=True, range=(-3., -1.), lw=2, alpha=0.5,  
+				histtype='stepfilled', color=colorset2[i], edgecolor=edgecolor2)
 		ax.set_xlim(-1., -3.0)
 
 		if i!=num_sets-1:
@@ -871,10 +960,10 @@ def plot_morph_params_1D(machine_retired, machine_not_retired, metadata, outfile
 		ax = fig.add_subplot(gs[0+i,2])
 		ax.hist(metadata['C'], bins=30, normed=True, range=(1.5, 5.5), alpha=0.5,
 				histtype='step', color='black', lw=3)
-		ax.hist(subset1['C'], bins=30, normed=True, range=(1.5, 5.5), alpha=0.5, 
-				histtype='stepfilled', color=colorset1[i])
-		ax.hist(subset2['C'], bins=30, normed=True, range=(1.5, 5.5), alpha=0.5, 
-				histtype='stepfilled', color=colorset2[i])
+		ax.hist(subset1['C'], bins=30, normed=True, range=(1.5, 5.5), lw=2,  alpha=0.6, 
+				histtype='stepfilled', color=colorset1[i], edgecolor=edgecolor1)
+		ax.hist(subset2['C'], bins=30, normed=True, range=(1.5, 5.5), lw=2, alpha=0.5, 
+				histtype='stepfilled', color=colorset2[i], edgecolor=edgecolor2)
 
 		if i!=num_sets-1:
 			ax.set_xticklabels([])
@@ -889,10 +978,10 @@ def plot_morph_params_1D(machine_retired, machine_not_retired, metadata, outfile
 		ax = fig.add_subplot(gs[0+i,3])
 		ax.hist(metadata['E'], bins=30,normed=True, range=(0,1), alpha=0.5,
 				histtype='step', color='black', lw=3)
-		ax.hist(subset1['E'], bins=30,normed=True, range=(0,1), alpha=0.5, 
-				histtype='stepfilled', color=colorset1[i])
-		ax.hist(subset2['E'], bins=30,normed=True, range=(0,1), alpha=0.5, 
-				histtype='stepfilled', color=colorset2[i])
+		ax.hist(subset1['E'], bins=30,normed=True, range=(0,1), lw=2, alpha=0.6, 
+				histtype='stepfilled', color=colorset1[i], edgecolor=edgecolor1)
+		ax.hist(subset2['E'], bins=30,normed=True, range=(0,1), lw=2, alpha=0.5, 
+				histtype='stepfilled', color=colorset2[i], edgecolor=edgecolor2)
 
 		if i!=num_sets-1:
 			ax.set_xticklabels([])
@@ -906,10 +995,12 @@ def plot_morph_params_1D(machine_retired, machine_not_retired, metadata, outfile
 		ax = fig.add_subplot(gs[0+i,4])
 		ax.hist(metadata['A'], bins=30, normed=True, range=(0.,0.4),alpha=0.5,
 				histtype='step', color='black', lw=3, label='All subjects')
-		ax.hist(subset1['A'], bins=30, normed=True, range=(0.,0.4),alpha=0.5, 
-				histtype='stepfilled', color=colorset1[i], label=labels1[i])
-		ax.hist(subset2['A'], bins=30, normed=True, range=(0.,0.4),alpha=0.5, 
-				histtype='stepfilled', color=colorset2[i], label=labels2[i])
+		ax.hist(subset1['A'], bins=30, normed=True, range=(0.,0.4), lw=2, alpha=0.6, 
+				histtype='stepfilled', color=colorset1[i], edgecolor=edgecolor1, 
+				label=labels1[i])
+		ax.hist(subset2['A'], bins=30, normed=True, range=(0.,0.4), lw=2, alpha=0.5, 
+				histtype='stepfilled', color=colorset2[i], edgecolor=edgecolor2,
+				label=labels2[i])
 
 		if i==0:
 			ax.legend(loc='upper right', frameon=False, fontsize=24)
@@ -933,8 +1024,6 @@ def plot_morph_params_1D(machine_retired, machine_not_retired, metadata, outfile
 	gs.tight_layout(fig, rect=[0, 0.0005, 1, 1])
 	plt.savefig('{}_morph_params_raw_labels_4paper.pdf'.format(outfile))
 	plt.show()
-
-	pdb.set_trace()
 
 
 ###############################################################################
@@ -1033,3 +1122,182 @@ def plot_roc_curve(subject_sets, smooth_or_not=True, gz_kind='raw', swap=True, o
 	pdb.set_trace()
 
 
+
+def plot_subject_trajectories(collection, N=200):
+
+	np.set_printoptions(precision=4, suppress=True)
+
+	import swap
+	swap.prior = 0.5
+	swap.thresholds = {'detection':0.99, 'rejection':0.004}
+
+	# This is a number set by P. Marshall and controls the number of 
+	#    realizations each point on the trajectory has
+	Ntrajectory = 50
+
+	# Select random sample of subjects:
+	Ns = np.min([N, collection.size()])
+	
+	fig = plt.figure(figsize=(7,12))
+	gs = gridspec.GridSpec(5, 1, hspace=0.)
+
+	ax1 = fig.add_subplot(gs[0:3])
+	ax2 = fig.add_subplot(gs[3:])
+
+	linewidth, size, alpha = 2, 40, 0.45
+
+	feat = collection.shortlist(15, kind='sim')
+	notf = collection.shortlist(15, kind='dud')
+	not_gold_standard = collection.shortlist(Ns, kind='test')
+
+	#"""  ------------- PLOT THE TRAJECTORIES ------------------
+	for ID in feat+notf+not_gold_standard:
+		subject = collection.member[ID]
+
+		# Set stylistic shits
+		if subject.kind == 'sim':
+			color = 'royalblue'
+		elif subject.kind == 'dud':
+			color = 'orange'
+		elif subject.kind == 'test':
+			color = 'black'
+			linewidth = 1
+			alpha = 0.1
+			size = 20
+
+		# Each subject trajectory can be hundreds of digits long.
+		# The number is controlled by Ntrajectory and by how many votes each
+		# subject receives. If certain features are turned on in SWAP.
+		# For now, there are 50 "trajectories" for each volunteer vote.
+		# If certain features are turned on, they can be random realizations.
+		# If not, they are all the same value. 
+		trajectory = subject.trajectory
+		lentraj = len(trajectory)
+
+		# We only want to plot the median of all the realizations for each trajectory
+		# Create an array where each point corresponds to a volunteer's vote 
+		num_votes = np.linspace(0, lentraj/Ntrajectory+1, 
+								lentraj/Ntrajectory, endpoint=True)
+		# We're going to plot everything in log scale so having the initial
+		# value at 0 would be bad... 
+		num_votes[0] = 0.5
+
+		# Next, we need to take the median posterior probability of the 
+		# Ntrajectory realizations for EACH volunteer vote
+		mdn_trajectory = [np.median(trajectory[i*Ntrajectory:(i+1)*Ntrajectory]) \
+							for i, v in enumerate(num_votes)]
+
+		# Plot the trajectories through probability space and the end points
+		ax1.plot(mdn_trajectory, num_votes, color=color, lw=linewidth, alpha=alpha)
+		ax1.scatter(mdn_trajectory[-1], num_votes[-1], s=size, c=color, edgecolor='grey')
+
+
+	# Plot an arrow denoting the prior 
+	#	(it will always be approx the 0th element of the trajectory)
+	ax1.arrow(mdn_trajectory[0], 0.3, dx=0., dy=0.075, fc='k', ec='k', lw=0.5,
+			  head_width=0.1, head_length=0.1)
+	#ax1.arrow(mdn_trajectory[0], 0.3, dx=0., dy=0.0, fc='k', ec='k', lw=0.5,
+	#		  head_width=0.1, head_length=0.1)
+
+	# Plot our upper and lower thresholds
+	#ax1.axvline(x=swap.thresholds['detection'], lw=3, ls='dotted', color='grey', alpha=.5)
+
+	ax1.axvline(x=swap.thresholds['detection'], lw=3, ls='dotted', color='royalblue', alpha=.5)
+	ax1.axvline(x=swap.thresholds['rejection'], lw=3, ls='dotted', color='orange', alpha=.6)
+	ax1.axvline(x=swap.prior, lw=2, ls='dotted', color='k', alpha=0.3)
+
+	ax1.set_yscale('log')
+	ax1.set_xscale('log')
+
+	ax1.set_xlim(2*swap.pmin, swap.pmax)
+	#ax1.set_xlim(swap.pmin, 1.05)
+	ax1.set_ylim(swap.Ncmax, swap.Ncmin)
+	ax1.set_ylabel('No. of Classifications')
+	ax1.set_xticklabels([])
+	#"""
+
+	""" ---------------  PLOT THE HISTOGRAMS --------------- """
+	# We want bins evenly spaced in logspace ... 
+	bins = np.linspace(np.log10(swap.pmin), np.log10(swap.pmax), 32, endpoint=True)
+	# but cast them back into linear probability space for the histogram ... 
+	bins = 10.0**bins
+	#bins = np.linspace(swap.pmin, swap.pmax, 32, endpoint=True)
+
+
+	colors = ['dimgrey', 'royalblue', 'orange']
+	labels = ['Non Gold Standard (GS)', "GS: Featured", "GS: Not"]
+
+	for j, kind in enumerate(['test', 'sim', 'dud']):
+		probs = collect_subject_probabilities(collection, kind)
+
+		# Sometimes probabilities can be below the set minimum
+		# Snap to grid
+		probs[probs<swap.pmin] = swap.pmin
+
+		if j == 0:
+			hist = ax2.hist(probs, bins=bins, histtype='stepfilled', alpha=1.0,
+							color=colors[j], edgecolor='k', lw=1.3, label=labels[j])
+		else:
+			ax2.hist(probs, bins=bins, histtype='stepfilled', alpha=1.0,
+					 color=colors[j], edgecolor='k', lw=1.3, label=labels[j])
+
+	# Plot our upper and lower thresholds
+	ax2.axvline(x=swap.thresholds['detection'], lw=3, ls='dotted', color='royalblue', alpha=.5)
+	ax2.axvline(x=swap.thresholds['rejection'], lw=3, ls='dotted', color='orange', alpha=.6)
+	ax2.axvline(x=swap.prior, lw=2, ls='dotted', color='k', alpha=0.25)
+
+	ax2.legend(loc='best', frameon=False, fontsize=16)
+
+	x = hist
+	scale_y = 1e3
+	ticks_y = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x/scale_y))
+	ax2.yaxis.set_major_formatter(ticks_y)
+
+	ax2.set_xscale('log')
+	ax2.set_yscale('log')
+	#ax2.set_ylim(0.1, 2*9999)
+	ax2.set_xlim(2*swap.pmin, swap.pmax)
+	#ax2.set_xlim(swap.pmin, 1.05)
+
+
+	ax2.set_xlabel(r"Posterior Probability P(Featured|$\bf{d}$)")
+	ax2.set_ylabel(r"No. of Subjects $[\times 1000]$")
+
+	plt.savefig('subject_trajectories.pdf')
+	plt.show()
+
+"""
+	xbins = np.arange(10, 18., 0.5)
+	ybins = np.arange(0, 26, 1)
+
+	H, x_, y_ = np.histogram2d(full_SWAP['PETROMAG_R']-full_SWAP['EXTINCTION_R'],
+							   full_SWAP['PETROR50_R'], bins=(xbins, ybins))
+
+	X, Y = np.mgrid[xbins[0]:xbins[-1]:0.5, ybins[0]:ybins[-1]:1]
+	
+	ax.contour(X, Y, H, colors='k', lw=2, levels=[1e1, 1e2, 1e3, 1e4])
+
+
+	Hfps, x_, y_ = np.histogram2d(fps['PETROMAG_R']-fps['EXTINCTION_R'], 
+								  fps['PETROR50_R'], bins=(xbins, ybins))
+
+
+   	ax.contour(X, Y, Hfps, colors=fps_color, lw=2, levels=[1e1, 1e2, 1e3, 1e4])
+
+	ax.scatter(fns['PETROMAG_R']-fns['EXTINCTION_R'], fns['PETROR50_R'], 
+    		   color=fns_color, alpha=.6, marker='.')
+
+	ax.axhline(5., ls='--', color='k', lw=0.5)
+
+	small_tot = np.sum(full_SWAP['PETROR50_R'] <= 5.)
+	small_fps = np.sum(fps['PETROR50_R'] <= 5.)
+	small_fns = np.sum(fns['PETROR50_R'] <= 5.)
+
+	#fraction = 100*float(small_fps + small_fns) / (len(fps)+len(fns))
+	#ax.text(15., 20., "%.2f%%"%fraction)
+
+	ax.set_ylabel(r'$R_{50}$ (arcsec)')
+	ax.set_xlabel('r magnitude')
+	ax.set_ylim(0., 20.)
+	ax.set_xlim(10., 17.5)
+"""
