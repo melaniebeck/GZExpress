@@ -19,6 +19,7 @@
 
 USE gz2
 
+/*
 CREATE TABLE task1_expert AS (
 SELECT an.*, ex.user_id, ac.asset_id, a.name, a.external_ref
 FROM annotations as an
@@ -43,21 +44,25 @@ IGNORE 1 LINES;
 
 GO
 
-SELECT DISTINCT cl.user_id INTO TABLE expert_users
-FROM asset_classications as ac
-JOIN expert_sample as ex
-     ON ex.asset_id = ac.asset_id
-JOIN classifications as cl
-     ON cl.id = ac.classification_id
-JOIN annotations as an
-     ON an.classification_id = ac.classification_id 
-WHERE an.task_id = 1;
+CREATE TABLE expert_users (
+  id NOT NULL AUTO_INCREMENT,
+  user_id INT
+  PRIMARY KEY (id)
+);
 
 GO
 
-ALTER TABLE expert_users ADD PRIMARY KEY (id);
+INSERT INTO expert_users (user_id)
+  SELECT DISTINCT cl.user_id 
+  FROM asset_classifications as ac
+  JOIN expert_sample as ex
+    ON ex.asset_id = ac.asset_id
+  JOIN classifications as cl
+    ON cl.id = ac.classification_id
+  JOIN annotations as an
+    ON an.classification_id = ac.classification_id 
+  WHERE an.task_id = 1;
 
-GO
 
 /* Then run the final command above. [These previous commands were done 
     on the command line.] */
@@ -67,8 +72,9 @@ GO
 /* This command creates the table required by SWAP.py by joining the relevant
    tables in the gz2 database to provide SWAP with the necessary information. 
    Change the WHERE statement to select the task (filter) of interest. 
+*/
 
-CREATE TABLE task3 AS (
+CREATE TABLE task1 AS (
 SELECT an.*, cl.user_id, ac.asset_id, a.name, a.external_ref
 FROM annotations as an
      JOIN classifications as cl
@@ -77,7 +83,7 @@ FROM annotations as an
      	  ON ac.classification_id = cl.id
      JOIN assets as a 
      	  ON a.id = ac.asset_id
-WHERE an.task_id = 3 );
+WHERE an.task_id = 1 );
 
 /* This command takes forever to execute -- probably didn't index morphology
    4/26/16 -- This table is no longer needed seeing as I restructured how and 

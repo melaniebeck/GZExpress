@@ -2,6 +2,7 @@ from __future__ import division
 
 import subprocess, sys, os, pdb
 from astropy.table import Table, join, vstack
+import pandas as pd
 import numpy as np
 import swap
 #from .errors import SimulationConfigNotSpecified
@@ -21,7 +22,6 @@ class Simulation(object):
 		self.directory = directory
 		self.variety = variety
 
-		pdb.set_trace()
 		self.detectedFileList = self.fetchFileList(kind='detected')
 		self.rejectedFileList = self.fetchFileList(kind='rejected')
 		self.retiredFileList = self.fetchFileList(kind='retired')
@@ -119,7 +119,11 @@ class Simulation(object):
 	@staticmethod
 	def fetchCatalog(filename):
 		try:
-			catalog = Table.read(filename, format='ascii')
+			catalog = cat = pd.read_table(filename, 
+										delim_whitespace=True, 
+										header=0, 
+										usecols=[0,1,2,3], 
+										names=['zooid','P', 'Nclass', 'image'])
 		except IOError:
 			print "Simulation: %s catalog could not be opened."%filename
 		else:
@@ -187,6 +191,9 @@ class Simulation(object):
 		num_rejected = rejected['Nclass']
 		num_combined = np.concatenate([num_rejected, num_detected])
 
+		print "Median number of votes till retirement:", np.median(num_combined)
+		print "Mean number of votes till retirement:", np.mean(num_combined)
+
 		if self.variety == 'smooth_or_not':
 			labels = ["'Smooth' (%i)"%len(num_detected),
 					  "'Not' (%i)"%len(num_rejected)]
@@ -210,7 +217,7 @@ class Simulation(object):
 			# To plot the combined arrays, make them the same size and fill the enxtras with -1
 			det = np.concatenate([num_detected, np.full(len(num_rejected), -1, dtype='int64')])
 			rej = np.concatenate([num_rejected, np.full(len(num_detected), -1, dtype='int64')])
-			
+
 			axes.hist(num_combined, weights=weights, bins=bins, range=(0,50), 
 				  	  histtype='step', alpha=1., color='black', 
 				  	  edgecolor='black', lw=3, label='All Retired')#'All Retired (%i)'%len(num_combined)

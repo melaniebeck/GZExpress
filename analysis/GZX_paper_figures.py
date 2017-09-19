@@ -80,8 +80,8 @@ def main():
 
 
 	make_volunteer_probabilties_plot = False
-	make_subject_trajectory_plot = True 
-	make_vote_distributions_plot = False 
+	make_subject_trajectory_plot = False 
+	make_vote_distributions_plot = True 
 	make_baseline_simulation_plot = False 
 	make_swap_variations_plot = False  
 	make_swap_gets_it_wrong_plot = False
@@ -92,9 +92,12 @@ def main():
 
 
 	survey = 'GZ2_sup_PLPD5_p5_flipfeature2b'
-	dir_tertiary = 'tertiary_simulation_output'
-	dir_sim_machine = 'sims_Machine/redo_first_run_raw_combo/'
-	dir_sim_swap = 'sims_SWAP/S_PLPD5_p5_ff_norand/'
+	#dir_tertiary = 'tertiary_simulation_output'
+	dir_tertiary = '.'
+	#dir_sim_machine = 'sims_Machine/redo_first_run_raw_combo/'
+	dir_sim_machine = 'redo_first_run_raw_combo/'
+	#dir_sim_swap = 'sims_SWAP/S_PLPD5_p5_ff_norand/'
+	dir_sim_swap = 'S_PLPD5_p5_ff_norand/'
 
 	# Load up some GZ2 data
 	# -----------------------------------------------
@@ -120,7 +123,7 @@ def main():
 															   mid_name+'_raw_combo'), 
 						   format='ascii')
 
-	mid_sim = Simulation(config='configfiles/update_sup_PLPD5_p5_flipfeature2b_norandom2.config',
+	mid_sim = Simulation(config='update_sup_PLPD5_p5_flipfeature2b_norandom2.config',
 						 directory=dir_sim_swap,
 						 variety='feat_or_not')
 
@@ -186,7 +189,8 @@ def main():
 	if make_swap_gets_it_wrong_plot:
 
 		# Compare SWAP-retired subjects to various parameters in the GZ2 Main Catalog
-		bigfuckingtable = Table.read('../SpaceWarps/analysis/GZ2ASSETS_NAIR_MORPH_MAIN.fits')
+		#bigfuckingtable = Table.read('../SpaceWarps/analysis/GZ2ASSETS_NAIR_MORPH_MAIN.fits')
+		bigfuckingtable = Table.read('GZ2ASSETS_NAIR_MORPH_MAIN.fits')
 		gz2_bigfuckingtable = join(gz2_metadata, bigfuckingtable, keys='id')
 		
 		all_retired = mid_sim.fetchCatalog(mid_sim.retiredFileList[-1])

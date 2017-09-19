@@ -1,6 +1,6 @@
 
 
-CREATE TABLE asset_agg35votes_task1 
+#CREATE TABLE asset_agg10votes_task1 
 SELECT asset_id, name, 
 	SUM(CASE WHEN answer_id = 1 THEN 1 ELSE 0 END) as smooth_count, 
 	SUM(CASE WHEN answer_id = 2 THEN 1 ELSE 0 END) as feature_count,
@@ -12,8 +12,9 @@ SELECT asset_id, name,
 		FROM task1_full
 		ORDER BY asset_id, created_at ASC
 		) ranked 
-WHERE asset_rank <= 35
-GROUP BY asset_id;
+WHERE asset_rank <= 15
+GROUP BY asset_id
+INTO OUTFILE '/tmp/asset_agg15votes_task1.txt';
 
 
 /*
@@ -23,10 +24,9 @@ SELECT asset_id, created_at, answer_id,
    FROM task1_expert_new
    ORDER BY asset_id, created_at ASC 
 LIMIT 100;
-/*
+*/
 
 /*
-
 
 SELECT asset_id, created_at, answer_id
 FROM
