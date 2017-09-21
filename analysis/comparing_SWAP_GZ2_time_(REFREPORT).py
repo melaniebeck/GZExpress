@@ -4,9 +4,23 @@ import pdb, sys
 import cPickle
 
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 sys.path.insert(0, '/home/oxymoronic/research/GZExpress/analysis/')
 from simulation import Simulation
+
+
+import matplotlib as mpl
+mpl.rcParams.update({'font.size': 24, 
+							'font.family': 'STIXGeneral', 
+							'mathtext.fontset': 'stix',
+							'xtick.labelsize':18,
+							'ytick.labelsize':18,
+							'xtick.major.width':2,
+							'ytick.major.width':2,
+							'axes.linewidth':2,
+							'lines.linewidth':3,
+							'legend.fontsize':18})
 
 
 def compute_swap_label(value):
@@ -22,7 +36,50 @@ def compute_accuracy(sample, label1, label2):
 	accuracy = np.sum(mask)/float(len(sample))
 	return accuracy
 
-plot = False
+
+def run_monte_carlo(N, Nsamples=100):
+
+	accuracy = {}
+	total_votes = {}
+
+	for n in N:
+		print "computing MonteCarlo for N={} votes".format(n)
+
+		accuracy["{}agg".format(n)] = []
+		total_votes["{}agg".format(n)] = []
+
+		try: 
+			gz2['GZ2_raw{}label_0.5'.format(n)]
+		except:
+			Nagg = pd.read_csv("asset_agg{}votes_task1.csv".format(n), usecols=[2,10])
+			gz2 = gz2.merge(Nagg, on='name')
+
+		for i in range(Nsamples): 
+			# Choose a random (with replacement) set of indices from the full
+			# GZ2 list of the same size as the SWAP-retired sample
+			random_idx = np.random.choice(np.array(len(gz2)), np.array(len(SWAP_retired)))
+
+			# From the GZ2 catalog, isolate that subjects belonging to those indices
+			random_sample = gz2.loc[random_idx].reset_index()
+
+			accuracy["{}agg".format(n)].append(compute_accuracy(random_sample, 
+										 						'GZ2_raw{}label_0.5'.format(n), 
+										 						'GZ2_raw_label_0.5'))
+
+			fewer_than_N = random_sample.loc[np.where(random_sample['total_classifications'] < n)]
+			at_least_N = len(random_sample)-len(fewer_than_N)
+
+			votes = at_least_N*n + np.sum(fewer_than_N['total_classifications'])
+			total_votes["{}agg".format(n)].append(votes)
+
+	with open('GZ2_Nagg_accuracy_for_random_SWAP_samples.pickle', 'wb') as F:
+		cPickle.dump(accuracy, F)	
+
+	with open('GZ2_Nagg_total_votes_for_random_SWAP_samples.pickle', 'wb') as F:
+		cPickle.dump(total_votes, F)	
+
+
+plot = True
 
 ### ---------------------------------------------------------------------------
 ### READ IN ALL THE SWAP DATA / CATALOGS
@@ -62,9 +119,6 @@ gz2 = gz2_votefracs.merge(gz2_labels, on='name')
 gz2 = gz2.merge(gz2_Nagg, on='name')
 
 
-### ---------------------------------------------------------------------------
-### IS SWAP RETIRING THE "EASIEST" SUBJECTS?  CHECK VOTE FRAC DISTS
-### ---------------------------------------------------------------------------
 # Join SWAP catalogs with GZ2 vote fraction catalog
 SWAP_retired['name'] = SWAP_retired['zooid']
 SWAP_retired = SWAP_retired.merge(gz2, on='name').dropna()
@@ -75,113 +129,22 @@ SWAP_never_retired = SWAP_never_retired.merge(gz2, on='name').dropna()
 smoothFrac = 't01_smooth_or_features_a01_smooth_fraction'
 featFrac = 't01_smooth_or_features_a02_features_or_disk_fraction'
 
-if plot:
-	fig = plt.figure(figsize=(10, 7))
 
-	# Plot vote fraction distributions for SWAP samples against the full GZ2
-	ax = fig.add_subplot(121)
-	ax.hist(gz2[smoothFrac].dropna().values, bins=50, histtype='stepfilled', 
-			color='orange', alpha=0.25, edgecolor='orange', 
-			label='All GZ2')
-	ax.hist(SWAP_retired[smoothFrac], bins=50, histtype='step', lw=2, 
-			label="SWAP retired")
-	ax.hist(SWAP_never_retired[smoothFrac], bins=50, histtype='step', color='green',
-			lw=2, ls='--',
-			label="SWAP not (yet) retired")
-	ax.legend(loc='upper left', frameon=False)
-	ax.set_xlabel("$f_{\mathrm{smooth}}$", fontsize=20)
-
-	"""
-	ax = fig.add_subplot(222)
-	ax.hist(SWAP_retired[featFrac], bins=50, histtype='step', label="SWAP-retired")
-	ax.hist(SWAP_never_retired[featFrac], bins=50, histtype='step', label="SWAP-not-retired")
-	ax.hist(gz2[featFrac].dropna().values, bins=50,histtype='step', color='orange', label='All GZ2')
-	ax.legend(loc='upper right', frameon=False)
-	ax.set_xlabel("$f_{\mathrm{featured}}$")
-	"""
-
-	# Plot votes till retirement for SWAP samples against full GZ2
-	ax = fig.add_subplot(122)
-	bins = np.arange(10, 80, 2)
-	ax.hist(gz2['total_classifications'].dropna().values, normed=True, bins=bins, 
-	        histtype='stepfilled', alpha=0.25, color='orange', edgecolor='orange', 
-	        label="All GZ2")
-	ax.hist(SWAP_retired['total_classifications'], normed=True, bins=bins,
-	        histtype='step', lw=2, 
-	        label="SWAP retired")
-	ax.hist(SWAP_never_retired['total_classifications'], normed=True, bins=bins, 
-	        histtype='step', color='green', lw=2, ls='--',
-	        label="SWAP not (yet) retired")
-	#ax.legend(loc='upper left', frameon=False)
-	ax.set_xlabel("GZ2 votes until retirement", fontsize=16)
-	ax.set_ylim(0, .12)
-
-	plt.savefig("SWAP-GZ2_votefracs_voteclicks.png")
-	plt.show()
-
-	pdb.set_trace()
-
-
-accuracy = {}
-total_votes = {}
-
-Nsamples = 100
 N = np.arange(15, 40, 5)
 N = np.insert(N, 0, 9)
 
-# If I've already run the "monte carlo", just open the accuracy pickle
+# If I've already run the random trials -- open them up
+# otherwise, run them!
 try:
 	with open('GZ2_Nagg_accuracy_for_random_SWAP_samples.pickle', 'rb') as F:
 		accuracy = cPickle.load(F)	
 
 	with open('GZ2_Nagg_total_votes_for_random_SWAP_samples.pickle', 'rb') as F:
 		total_votes = cPickle.load(F)
-
 except:
-	for n in N:
-		print "computing MonteCarlo for N={} votes".format(n)
+	run_monte_carlo()
 
-		accuracy["{}agg".format(n)] = []
-		total_votes["{}agg".format(n)] = []
-
-		try: 
-			gz2['GZ2_raw{}label_0.5'.format(n)]
-		except:
-			Nagg = pd.read_csv("asset_agg{}votes_task1.csv".format(n), usecols=[2,10])
-			gz2 = gz2.merge(Nagg, on='name')
-
-		for i in range(Nsamples): 
-			# Choose a random (with replacement) set of indices from the full
-			# GZ2 list of the same size as the SWAP-retired sample
-			random_idx = np.random.choice(np.array(len(gz2)), np.array(len(SWAP_retired)))
-
-			# From the GZ2 catalog, isolate that subjects belonging to those indices
-			random_sample = gz2.loc[random_idx].reset_index()
-
-			accuracy["{}agg".format(n)].append(compute_accuracy(random_sample, 
-										 						'GZ2_raw{}label_0.5'.format(n), 
-										 						'GZ2_raw_label_0.5'))
-
-			fewer_than_N = random_sample.loc[np.where(random_sample['total_classifications'] < n)]
-			at_least_N = len(random_sample)-len(fewer_than_N)
-
-			votes = at_least_N*n + np.sum(fewer_than_N['total_classifications'])
-			total_votes["{}agg".format(n)].append(votes)
-
-with open('GZ2_Nagg_accuracy_for_random_SWAP_samples.pickle', 'wb') as F:
-	cPickle.dump(accuracy, F)	
-
-with open('GZ2_Nagg_total_votes_for_random_SWAP_samples.pickle', 'wb') as F:
-	cPickle.dump(total_votes, F)	
-
-"""
-for k, v in total_votes.iteritems():
-	print k, np.mean(v), np.std(v)
-
-for k, v in accuracy.iteritems():
-	print k, np.mean(v), np.std(v)
-"""
-
+#  That data are just the raw numbers: take some simple stats
 acc_mean, acc_std = [], []
 votes_mean, votes_std = [], []
 
@@ -194,32 +157,147 @@ for n in N:
 	votes_mean.append(np.mean(total_votes[key]))
 	votes_std.append(np.std(total_votes[key]))
 
-
+# Get SWAP simulation values for accuracy and total votes
 SWAP_acc = compute_accuracy(SWAP_retired, 'swap_label', 'GZ2_raw_label_0.5')
 SWAP_votes = np.sum(SWAP_retired['Nclass'])
 
+
+
+if plot:
+	fig = plt.figure(figsize=(15, 10))
+	gs = gridspec.GridSpec(6, 4)
+
+	################# PLOT ACCURACY AND TOTAL VOTES ####################
+	ax = plt.subplot(gs[3:, :])
+	ax.bar(N, np.array(votes_mean)/1e6, yerr=np.array(votes_std)/1e6, width=2, 
+			color='gray', alpha=0.4)
+	ax.bar(5, float(SWAP_votes)/1e6, width=2, color='gray', alpha=1.)
+	ax.set_ylabel("Total votes [1e6]")
+	ax.set_xlabel("                   GZ2 retirement at N votes")
+
+	ax2 = ax.twinx()
+	ax2.errorbar(N, acc_mean, yerr=acc_std, fmt='o', markersize=10, capthick=2, color='red')
+	ax2.errorbar(5, SWAP_acc, fmt='o', markersize=10, capthick=2, color='red')
+
+	NN = np.insert(N, 0, 5)
+	ax2.set_xticks(NN)
+	ax2.set_xticklabels(['SWAP']+[str(n) for n in N])
+	ax2.set_ylabel("Accuracy", color='red')
+	ax2.tick_params('y', colors='red')
+
+	################# PLOT GZ2 SMOOTH FRACTION ####################
+	ax = plt.subplot(gs[0:3,:2])
+	ax.hist(gz2[smoothFrac].dropna().values, bins=50, histtype='stepfilled', 
+			color='orange', alpha=0.25, edgecolor='grey', 
+			label='All GZ2')
+	ax.hist(SWAP_retired[smoothFrac], bins=50, histtype='step', lw=2,  alpha=0.8,
+			label="SWAP retired")
+	ax.hist(SWAP_never_retired[smoothFrac], bins=50, histtype='step', color='red',
+			lw=2,  alpha=0.8,
+			label="SWAP not (yet) retired")
+
+	ax.legend(loc='upper left', frameon=False)
+	ax.set_xlabel("$f_{\mathrm{smooth}}$")
+	ax.set_ylabel("Counts")
+
+	################# PLOT VOTES AT SUBJECT RETIREMENT ####################
+	ax = plt.subplot(gs[0:3, 2:])
+	bins = np.arange(10, 80, 2)
+	ax.hist(gz2['total_classifications'].dropna().values, normed=True, bins=bins, 
+	        histtype='stepfilled', alpha=0.25, color='orange', edgecolor='grey', 
+	        label=None)
+	ax.hist(SWAP_retired['total_classifications'], normed=True, bins=bins,
+	        histtype='step', lw=2, alpha=0.8,
+	        label=None)
+	ax.hist(SWAP_never_retired['total_classifications'], normed=True, bins=bins, 
+	        histtype='step', color='red', lw=2, alpha=0.8,
+	        label=None)
+
+	bins = np.arange(0, 70, 2)
+	ax.hist(SWAP_retired['Nclass'], normed=True, bins=bins, histtype='step', 
+			lw=2, ls='--', color='steelblue', alpha=0.8, 
+			label="Simulation: SWAP retired")
+	#ax.hist(SWAP_never_retired['Nclass'], normed=True, bins=bins, histtype='step', 
+	#		lw=2, ls='--', color='green', alpha=0.8, 
+	#		label="Simulation: SWAP not (yet) retired")
+
+	ax.legend(loc='upper left', frameon=False)
+	ax.set_xlabel("Votes at retirement")
+	ax.set_ylabel("Normalized units")
+	ax.set_ylim(0, .13)
+
+	gs.tight_layout(fig)
+	plt.savefig("SWAP_vs_GZ2_retirement.pdf")
+	#plt.show()
+	plt.close()
+
+
+### --------------------------------------------------------------
+### RUN SOME ADDITIONAL CHECKS 
+### --------------------------------------------------------------
+
+"""
+Claudia wants me to look a the ratio of GZ2 / SWAPretired +SWAPnotretired
+and make sure it's constant as a function f_smooth (random sample)
+"""
+
+swap = pd.concat([SWAP_retired, SWAP_never_retired])
+
+fig = plt.figure(figsize=(10,15))
+ax = fig.add_subplot(211)
+sss, bins, _ = ax.hist(swap[smoothFrac], bins=50, histtype='stepfilled', 
+					   normed=True, alpha=0.5, 
+					   label='swap')
+ggg, bins, _ = ax.hist(gz2[smoothFrac].dropna().values, bins=50, histtype='stepfilled',
+					   normed=True, alpha=0.5, 
+					   label='gz2')
+ax.legend(loc='upper left', frameon=False)
+#ax.set_xlabel('f_smooth')
+
+ax = fig.add_subplot(212)
+ax.scatter(bins[:-1]+0.01, ggg-sss)
+ax.set_xlabel('f_smooth')
+ax.set_ylabel('gz2 - swap')
+
+plt.savefig("swap_check_random_sample1.png")
+#plt.show()
+plt.close()
+
+
+fig = plt.figure(figsize=(10,15))
+ax = fig.add_subplot(211)
+sss, bins, _ = ax.hist(swap['total_classifications'], bins=50, histtype='stepfilled', 
+					   normed=True, alpha=0.5, 
+					   label='swap')
+ggg, bins, _ = ax.hist(gz2['total_classifications'].dropna().values, bins=50, histtype='stepfilled',
+					   normed=True, alpha=0.5, 
+					   label='gz2')
+ax.legend(loc='upper left', frameon=False)
+
+ax = fig.add_subplot(212)
+ax.scatter(bins[:-1]+0.01, ggg-sss)
+ax.set_xlabel('total_classifications')
+ax.set_ylabel('gz2 - swap')
+
+plt.savefig("swap_check_random_sample2.png")
+#plt.show()
+plt.close()
+
 fig = plt.figure(figsize=(8,8))
-ax = fig.add_subplot(111)
+ax= fig.add_subplot(111)
 
-ax.errorbar(N, acc_mean, yerr=acc_std, fmt='o', capthick=2, color='red')
-ax.errorbar(5, SWAP_acc, fmt='o', capthick=2, color='red')
+ax.scatter(.897*SWAP_never_retired['total_classifications'], 
+		   SWAP_never_retired['Nclass'],
+		   marker='.', alpha=0.25)
 
+ax.plot([5,50],[5, 50], 'k-')
 
-NN = np.insert(N, 0, 5)
-ax.set_xticks(NN)
-ax.set_xticklabels(['SWAP']+[str(n) for n in N])
-ax.set_ylabel("Accuracy", color='red')
-ax.tick_params('y', colors='red')
-ax.set_xlabel("                   GZ2 N votes till retirement")
+ax.set_xlabel("GZ2 votes at retirement")
+ax.set_ylabel("SWAP votes at end of simulation")
+ax.set_title("SWAP not retired: Vote distributions")
 
-
-ax2 = ax.twinx()
-ax2.bar(N, np.array(votes_mean)/1e6, yerr=np.array(votes_std)/1e6, width=2, 
-		color='gray', alpha=0.4)
-ax2.bar(5, float(SWAP_votes)/1e6, width=2, color='gray', alpha=0.4)
-ax2.set_ylabel("Total classifications [1e6]")
-
-plt.savefig('SWAP_vs_GZ2_Nagg_retirement.png')
+plt.savefig("swap_never_retired_votes.png")
 plt.show()
 
 pdb.set_trace()
+
