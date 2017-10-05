@@ -85,7 +85,7 @@ def plot_results():
 	ax2.bar(5, GZX_total_votes/1e6, width=2, color='gray', alpha=0.4)
 	ax2.set_ylabel("Human Effort [1e6]")
 
-	plt.savefig('retirement_limites.png')
+	plt.savefig('retirement_limits.png')
 	plt.show()
 
 	pdb.set_trace()
@@ -98,7 +98,7 @@ sim = Simulation(config="update_sup_PLPD5_p5_flipfeature2b_norandom2.config",
 
 
 retired = sim.fetchCatalog(sim.retiredFileList[-1])
-retired = retired.to_pandas()
+#retired = retired.to_pandas()
 retired['name'] = retired['zooid']
 retired['swap_label'] = retired.apply(lambda x: compute_swap_label(x['P']), axis=1)
 	
@@ -108,7 +108,7 @@ retired['swap_label'] = retired.apply(lambda x: compute_swap_label(x['P']), axis
 votesall = pd.read_csv('multi-threshold_GZ2_labels.csv')
 
 
-N = np.arange(15, 40, 5)
+N = np.arange(10, 40, 5)
 N = np.insert(N, 0, 9, axis=0)
 print N
 
@@ -123,7 +123,7 @@ for n in N:
 								   delimiter='\t', header=None, 
 								   names=['asset_id', 'name', 'smooth_count', 'feature_count', 'star_count'])
 	except:
-		votesfewer =pd.read_table('asset_agg{}votes.tsv'.format(n), delimiter='\t')
+		votesfewer =pd.read_csv('asset_agg{}votes_task1.csv'.format(n))
 	
 	votesfewer = votesfewer[votesfewer.name < 7000000000000000000]
 
@@ -141,7 +141,6 @@ for n in N:
 	votesfewer['GZ2_raw{}label_0.5'.format(n)] = votesfewer.apply(lambda x: compute_label(x['smooth_fraction'], 
 																		  	   x['feature_fraction'], 
 																		  	   x['star_fraction']), axis=1)
-
 	# Save this to file for later exploration
 	votesfewer.to_csv("asset_agg{}votes_task1.csv".format(n))
 
@@ -172,6 +171,6 @@ pdb.set_trace()
 tt = Table(data=[N, swap_only_acc, full_acc], 
 		   names=("votes_per_gal", "swap_sample_acc", "gz2_sample_acc"))
 
-tt.write("GZ2_vary_retirement_criterion.csv")
+tt.write("GZ2_vary_retirement_criterion.csv", overwrite=True)
 
 pdb.set_trace()

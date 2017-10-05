@@ -12,9 +12,9 @@ SELECT asset_id, name,
 		FROM task1_full
 		ORDER BY asset_id, created_at ASC
 		) ranked 
-WHERE asset_rank <= 15
+WHERE asset_rank <= 10
 GROUP BY asset_id
-INTO OUTFILE '/tmp/asset_agg15votes_task1.txt';
+INTO OUTFILE '/tmp/asset_agg10votes_task1.txt';
 
 
 /*

@@ -7,6 +7,7 @@ from simulation import Simulation
 from astropy.table import Table, join, vstack
 from argparse import ArgumentParser
 import numpy as np
+import pandas as pd
 import pdb, sys
 from datetime import *
 import cPickle
@@ -76,31 +77,39 @@ def main():
 
 		REQUIRES
 
+
+	8. LEARNING CURVE
+		The creation of this figure is in validation_gridsearch.py but it should
+		be moved here!
+
 	"""
 
 
-	make_volunteer_probabilties_plot = False
+	make_volunteer_probabilties_plot = True
 	make_subject_trajectory_plot = False 
-	make_vote_distributions_plot = True 
+	make_vote_distributions_plot = False 
 	make_baseline_simulation_plot = False 
 	make_swap_variations_plot = False  
 	make_swap_gets_it_wrong_plot = False
+	# MONEYPLOT also has the code for the Component Contribution 
+	# figure cuz that makes all kind of sense, obvi.
 	make_moneyplot = False
 	make_morph_distributions_plot = False
 	make_roc_curves = False
-	calculate_GX_human_effort = False
+	make_RF_feature_importance_plot = False
 
+
+	backup_drive_dir = "/media/oxymoronic/Seagate Backup Plus Drive/MicroCenter Backup 9.5.17/home/oxymoronic/research/GZExpress/analysis/"
 
 	survey = 'GZ2_sup_PLPD5_p5_flipfeature2b'
-	#dir_tertiary = 'tertiary_simulation_output'
-	dir_tertiary = '.'
-	#dir_sim_machine = 'sims_Machine/redo_first_run_raw_combo/'
-	dir_sim_machine = 'redo_first_run_raw_combo/'
+	dir_tertiary = backup_drive_dir+'tertiary_simulation_output'
+	dir_sim_machine = backup_drive_dir+'sims_Machine/redo_first_run_raw_combo/'
 	#dir_sim_swap = 'sims_SWAP/S_PLPD5_p5_ff_norand/'
 	dir_sim_swap = 'S_PLPD5_p5_ff_norand/'
 
 	# Load up some GZ2 data
 	# -----------------------------------------------
+	"""
 	gz2_metadata = Table.read('metadata_ground_truth_labels.fits')
 	if 'GZ2_deb_combo' not in gz2_metadata.colnames:
 		gz2_metadata['GZ2_raw_combo'] = GZ2_label_SMOOTH_NOT(bigfuckingtable,type='raw')
@@ -109,6 +118,8 @@ def main():
 
 	gz2_metadata['zooid'] = gz2_metadata['SDSS_id']
 	gz2_metadata['id'] = gz2_metadata['asset_id']
+
+	gz2_labels = pd.read_csv("multi-threshold_GZ2_labels.csv", index_col=False)
 
 	F = open('GZ2_cumulative_retired_subjects_expert.pickle','r')
 	gz2_cum_sub_retired = cPickle.load(F)
@@ -126,8 +137,8 @@ def main():
 	mid_sim = Simulation(config='update_sup_PLPD5_p5_flipfeature2b_norandom2.config',
 						 directory=dir_sim_swap,
 						 variety='feat_or_not')
-
-
+	"""
+	
 	""" MAKE VOLUNTEER PROBABILTIES PLOT """
 	if make_volunteer_probabilties_plot:
 
@@ -139,7 +150,7 @@ def main():
 
 	if make_subject_trajectory_plot:
 
-		# Load up the SWAP Simulation AGENT BUREAU
+		# Load up the SWAP Simulation COLLECTION BUREAU
 		picklename = '{0}/{1}_collection.pickle'.format(dir_sim_swap,survey)
 		collection = swap.read_pickle(picklename, 'collection')
 		plot_subject_trajectories(collection, 200)
@@ -147,12 +158,10 @@ def main():
 
 	""" MAKE BASELINE SIMULATION PLOT """
 	if make_baseline_simulation_plot:
-
 		# BASELINE fig requires BASELINE Simulation, 
 		#						evaluation output for that sim,
 		#						cumulative retirement for GZ2
 		plot_GZX_baseline(mid_sim, mid_eval2, gz2_cum_sub_retired)
-
 
 	""" MAKE MONEY PLOT """
 	if make_moneyplot:
@@ -170,7 +179,8 @@ def main():
 		MLbureau = cPickle.load(F)
 		F.close()
 
-		MONEYPLOT(92, mid_sim, mid_eval2, gz2_cum_sub_retired, combo_run, MLbureau, outfile=outfile)
+		MONEYPLOT(92, mid_sim, mid_eval2, gz2_cum_sub_retired, combo_run, 
+				  MLbureau, gz2_labels, outfile=outfile)
 
 
 	""" MORPH DISTRIBUTIONS """
@@ -214,7 +224,7 @@ def main():
 		plot_vote_distributions(gz2_metadata, mid_sim)
 
 
-	if calculate_GX_human_effort: 
+	if make_RF_feature_importance_plot: 
 
 		mlbureaufile = 'sims_Machine/redo_first_run_raw_combo/GZ2_sup_PLPD5_p5_flipfeature2b_MLbureau.pickle'
 		MLbureau = swap.read_pickle(mlbureaufile,'bureau')

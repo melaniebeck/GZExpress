@@ -37,7 +37,7 @@ def compute_accuracy(sample, label1, label2):
 	return accuracy
 
 
-def run_monte_carlo(N, Nsamples=100):
+def run_monte_carlo(gz2, N, Nsamples=100):
 
 	accuracy = {}
 	total_votes = {}
@@ -51,13 +51,15 @@ def run_monte_carlo(N, Nsamples=100):
 		try: 
 			gz2['GZ2_raw{}label_0.5'.format(n)]
 		except:
-			Nagg = pd.read_csv("asset_agg{}votes_task1.csv".format(n), usecols=[2,10])
+			Nagg = pd.read_csv("asset_agg{}votes_task1.csv".format(n), 
+							   usecols=["name","GZ2_raw{}label_0.5".format(n)])
 			gz2 = gz2.merge(Nagg, on='name')
 
 		for i in range(Nsamples): 
 			# Choose a random (with replacement) set of indices from the full
 			# GZ2 list of the same size as the SWAP-retired sample
-			random_idx = np.random.choice(np.array(len(gz2)), np.array(len(SWAP_retired)))
+			random_idx = np.random.choice(np.array(len(gz2)), np.array(len(SWAP_retired)), 
+										  replace=False)
 
 			# From the GZ2 catalog, isolate that subjects belonging to those indices
 			random_sample = gz2.loc[random_idx].reset_index()
@@ -78,6 +80,7 @@ def run_monte_carlo(N, Nsamples=100):
 	with open('GZ2_Nagg_total_votes_for_random_SWAP_samples.pickle', 'wb') as F:
 		cPickle.dump(total_votes, F)	
 
+	return accuracy, total_votes
 
 plot = True
 
@@ -130,11 +133,12 @@ smoothFrac = 't01_smooth_or_features_a01_smooth_fraction'
 featFrac = 't01_smooth_or_features_a02_features_or_disk_fraction'
 
 
-N = np.arange(15, 40, 5)
+N = np.arange(10, 40, 5)
 N = np.insert(N, 0, 9)
 
 # If I've already run the random trials -- open them up
 # otherwise, run them!
+#"""
 try:
 	with open('GZ2_Nagg_accuracy_for_random_SWAP_samples.pickle', 'rb') as F:
 		accuracy = cPickle.load(F)	
@@ -143,6 +147,9 @@ try:
 		total_votes = cPickle.load(F)
 except:
 	run_monte_carlo()
+#"""
+
+#accuracy, total_votes = run_monte_carlo(gz2, N)
 
 #  That data are just the raw numbers: take some simple stats
 acc_mean, acc_std = [], []
@@ -162,26 +169,41 @@ SWAP_acc = compute_accuracy(SWAP_retired, 'swap_label', 'GZ2_raw_label_0.5')
 SWAP_votes = np.sum(SWAP_retired['Nclass'])
 
 
+GZ2_full_votes = 14144941.
 
 if plot:
+	# if using 10 instead of 9:
+	N = N[1:]
+
 	fig = plt.figure(figsize=(15, 10))
 	gs = gridspec.GridSpec(6, 4)
 
-	################# PLOT ACCURACY AND TOTAL VOTES ####################
-	ax = plt.subplot(gs[3:, :])
-	ax.bar(N, np.array(votes_mean)/1e6, yerr=np.array(votes_std)/1e6, width=2, 
-			color='gray', alpha=0.4)
-	ax.bar(5, float(SWAP_votes)/1e6, width=2, color='gray', alpha=1.)
-	ax.set_ylabel("Total votes [1e6]")
-	ax.set_xlabel("                   GZ2 retirement at N votes")
+	votes_mean_frac = np.array(votes_mean[1:])/float(votes_mean[-1])
 
-	ax2 = ax.twinx()
-	ax2.errorbar(N, acc_mean, yerr=acc_std, fmt='o', markersize=10, capthick=2, color='red')
-	ax2.errorbar(5, SWAP_acc, fmt='o', markersize=10, capthick=2, color='red')
+	################# PLOT ACCURACY AND TOTAL VOTES ####################
+	ax1 = plt.subplot(gs[3:, :])
+	ax2 = ax1.twinx()
+
+	#yerr=np.array(votes_std[1:])/1e6, 
+	ax1.bar(N, votes_mean_frac, width=2, color='gray', alpha=0.4)
+	ax1.bar(5, float(SWAP_votes)/votes_mean[-1], width=2, color='gray', alpha=1.)
+	
+	ax1.yaxis.tick_right()
+	ax1.yaxis.set_label_position("right")
+	ax1.set_ylabel(r"Fraction of votes at $N=35$")
 
 	NN = np.insert(N, 0, 5)
-	ax2.set_xticks(NN)
-	ax2.set_xticklabels(['SWAP']+[str(n) for n in N])
+	ax1.set_xticks(NN)
+	ax1.set_xticklabels(['SWAP']+[str(n) for n in N])
+	ax1.set_xlabel("                   GZ2 retirement at N votes")
+
+
+	ax2.errorbar(N, acc_mean[1:], yerr=acc_std[1:], fmt='o', markersize=10, 
+				 capthick=2, color='red')
+	ax2.errorbar(5, SWAP_acc, fmt='o', markersize=10, capthick=2, color='red')
+
+	ax2.yaxis.tick_left()
+	ax2.yaxis.set_label_position("left")
 	ax2.set_ylabel("Accuracy", color='red')
 	ax2.tick_params('y', colors='red')
 
@@ -230,6 +252,8 @@ if plot:
 	plt.savefig("SWAP_vs_GZ2_retirement.pdf")
 	#plt.show()
 	plt.close()
+
+pdb.set_trace()
 
 
 ### --------------------------------------------------------------
@@ -286,6 +310,9 @@ plt.close()
 fig = plt.figure(figsize=(8,8))
 ax= fig.add_subplot(111)
 
+## The factor in front is due to the fact that I select only those votes
+# made by volunteers who have seen at least one of the gold-standard galaxies
+# This reduces the total pool of votes by ~10%
 ax.scatter(.897*SWAP_never_retired['total_classifications'], 
 		   SWAP_never_retired['Nclass'],
 		   marker='.', alpha=0.25)

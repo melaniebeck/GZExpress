@@ -16,8 +16,8 @@ import pdb
 mpl.rcParams.update({'font.size': 24, 
 							'font.family': 'STIXGeneral', 
 							'mathtext.fontset': 'stix',
-							'xtick.labelsize':18,
-							'ytick.labelsize':18,
+							'xtick.labelsize':20,
+							'ytick.labelsize':20,
 							'xtick.major.width':2,
 							'ytick.major.width':2,
 							'axes.linewidth':2,
@@ -112,7 +112,7 @@ def plot_GZX_baseline(GZX_baseline_run, GZX_baseline_eval, gz2_retired, single=F
 	else:
 		# PLOT RETIREMENT & QUALITY ON SEPARATE FIGURES (PER BROOKE)
 
-		fig = plt.figure(figsize=(11,16))
+		fig = plt.figure(figsize=(10,15))
 		gs = gridspec.GridSpec(2,1, wspace=0.1, hspace=0.01)
 
 		ax = fig.add_subplot(gs[1])
@@ -120,13 +120,13 @@ def plot_GZX_baseline(GZX_baseline_run, GZX_baseline_eval, gz2_retired, single=F
 
 		GZX_baseline_run.plot_cumulative_retired_subjects(ax, plot_combined=True)
 		ax.plot(days, gz2_retired, color='midnightblue', ls='--', lw=4, label='GZ2')
-		ax.legend(loc='best')
+		ax.legend(loc='best', fontsize=24)
 
 		ax.set_ylim(0,260000)
 
 		ax.set_xlabel('Days in GZ2 Project')
-		ax.set_ylabel(r'Cumulative retired subjects $\times 1000$', fontsize=28)
-
+		ax.set_ylabel(r'Cumulative retired subjects [$10^3$]', fontsize=28)
+		ax.tick_params(direction='in')
 		# -----------------------------------------------------------
 
 		ax = fig.add_subplot(gs[0])
@@ -141,10 +141,12 @@ def plot_GZX_baseline(GZX_baseline_run, GZX_baseline_eval, gz2_retired, single=F
 		ax.set_ylim(0.75, 1.0)
 		ax.set_xlim(0,len(days)-1)
 
-		ax.legend(loc='lower left')
+		ax.legend(loc='lower left', fontsize=24)
+		ax.tick_params(direction='in')
 
-	plt.savefig('GZX_eval_and_retirement_baseline_4paper.pdf')
-	plt.show()
+	#gs.tight_layout(fig)
+	plt.savefig('GZX_eval_and_retirement_baseline_4paper.pdf', bbox_inches='tight')
+	#plt.show()
 
 
 ###############################################################################
@@ -210,7 +212,7 @@ def plot_GZX_evaluation_spread(num_days, GZX_low_run, GZX_baseline_run,
 
 	if single_figure:
 		ax.set_xlabel('Days in GZ2 project')
-		plt.savefig("GZX_evaluation_%s.pdf"%outfile)
+		plt.savefig("GZX_evaluation_%s.pdf"%outfile, bbox_inches='tight')
 		plt.show()
 		plt.close()
 	else:
@@ -268,12 +270,12 @@ def plot_GZX_cumulative_retirement_spread(num_days, low_run, mid_run, high_run,
 	ax.yaxis.set_major_formatter(ticks_y)
 
 	ax.set_xlabel('Days in GZ2 Project')
-	ax.set_ylabel(r'Cumulative retired subjects $\times 1000$')
+	ax.set_ylabel(r'Cumulative retired subjects [$10^3$]')
 
 	ax.legend(loc='best', frameon=True)
 
 	if single_figure:
-		plt.savefig('GZX_cumulative_retirement_{0}'.format(outfile))
+		plt.savefig('GZX_cumulative_retirement_{0}'.format(outfile), bbox_inches='tight')
 		plt.show()
 		plt.close()
 
@@ -283,17 +285,17 @@ def plot_GZX_cumulative_retirement_spread(num_days, low_run, mid_run, high_run,
 #			THE MONEY PLOT
 ###############################################################################
 
-def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau, outfile):
-
+def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau, 
+			  gz2_labels, outfile='.'):
 	"""
-	GOAL: plot GZ2, SWAP-only, and GZX retirement rates
+	MONEYPLOT is obvious but this code snippet also creates the 
+	Compontent Contribution figure (How SWAP and RF contribute to retiremnt)
 	"""
-	import swap
-	meta = swap.read_pickle('GZ2_sup_PLPD5_p5_flipfeature2b_metadata.pickle', 'metadata')
-	sample = meta.subjects
 
-	sample_feat = np.sum(sample['GZ2_raw_combo'] == 0)
-	sample_not = np.sum(sample['GZ2_raw_combo'] == 1)
+	# Number of subjects that are labeled Featured in GZ2
+	sample_feat = np.sum(gz2_labels['GZ2_raw_label_0.5'] == 0)
+	# Number of subjects that are labeled Not Featured in GZ2 
+	sample_not = np.sum(gz2_labels['GZ2_raw_label_0.5'] == 1)
 
 	dates = [datetime(2009, 02, 12)+timedelta(days=i) for i in range(num_days)]
 	dates = np.array([datetime.strftime(d, '%Y-%m-%d_%H:%M:%S') for d in dates])
@@ -381,12 +383,12 @@ def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau, ou
 
 	gzx_tot = ax.plot(short_days, combo_eval['total_retired'], color='k')
 	swap_only = ax.plot(short_days, mid_ret[:len(short_days)], color='grey', ls=':')
-	gzx_rf = ax.plot(short_days, combo_eval['machine_total'], color=rfcolor, ls='-.', lw=6)
+	gzx_rf = ax.plot(short_days, combo_eval['machine_total'], color=rfcolor, ls='-.', lw=4)
 	gzx_swap = ax.plot(short_days, combo_eval['swap_total']+combo_eval['valid_total'], 
 					   color=swapcolor, ls='--', lw=4)
 
 	ax.set_xlabel('Days in GZ2 Project')
-	ax.set_ylabel(r'Cumulative retired subjects $\times 1000$')
+	ax.set_ylabel(r'Cumulative retired subjects [$10^3$]')
 	ax.set_xlim(0, len(short_days)-1)
 	ax.set_ylim(0, 260000)
 
@@ -396,7 +398,8 @@ def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau, ou
 	ax.yaxis.set_major_formatter(ticks_y)
 
 	ax.legend((gzx_tot[0], gzx_rf[0], gzx_swap[0], swap_only[0]), 
-			  ('GZX: SWAP+RF', 'GZX: RF', 'GZX: SWAP', 'SWAP-only'), loc='best')
+			  ('GZX: SWAP+RF', 'GZX: RF', 'GZX: SWAP', 'SWAP-only'), 
+			  loc='upper left', fontsize=24)
 	
 
 
@@ -407,7 +410,7 @@ def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau, ou
 	
 	plt.plot((swap_tps+combo_eval['machine_tps'])/sample_feat, color='k')
 	plt.plot(swap_tps/sample_feat, color=swapcolor, ls='--', lw=4)
-	plt.plot(combo_eval['machine_tps']/sample_feat, color=rfcolor, ls='-.', lw=6)
+	plt.plot(combo_eval['machine_tps']/sample_feat, color=rfcolor, ls='-.', lw=4)
 	plt.ylabel("Fraction")
 	plt.xlabel('Days in GZ2 project')
 	ax.set_xlim(0, len(short_days)-1)
@@ -419,16 +422,20 @@ def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau, ou
 
 	plt.plot((swap_tns+combo_eval['machine_tns'])/sample_not, color='k')
 	plt.plot(swap_tns/sample_not, color=swapcolor, ls='--', lw=4)
-	plt.plot(combo_eval['machine_tns']/sample_not, color=rfcolor, ls='-.', lw=6)
+	plt.plot(combo_eval['machine_tns']/sample_not, color=rfcolor, ls='-.', lw=4)
 	plt.xlabel('Days in GZ2 project')
 	ax.yaxis.set_ticklabels([])
 	ax.set_xlim(0, len(short_days)-1)
 	ax.set_ylim(0, .7)
 	ax.text(2, 0.61, 'Not Featured')
+	#ax.set_yticks([])
+	for tic in ax.yaxis.get_major_ticks():
+	    tic.tick1On = tic.tick2On = False
+
 
 	gs.tight_layout(fig)
-	plt.savefig('{}_GZX_component_contributions.pdf'.format(outfile))
-	plt.show()
+	plt.savefig('GZX_component_contributions.pdf', bbox_inches='tight')
+	#plt.show()
 
 	pdb.set_trace()
 
@@ -504,10 +511,10 @@ def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau, ou
 			  loc='center right')
 
 	ax.set_xlabel('Days in GZ2 Project')
-	ax.set_ylabel(r'Cumulative retired subjects $\times 1000$')
+	ax.set_ylabel(r'Cumulative retired subjects [$10^3$]')
 
 	gs.tight_layout(fig)
-	plt.savefig('{}_moneyplot.pdf'.format(outfile))
+	plt.savefig('GZX_moneyplot.pdf', bbox_inches='tight')
 
 	plt.show()
 
@@ -606,7 +613,7 @@ def plot_user_probabilities(bureau, number_of_users):
 	lowerhistax.hist(PL_full, bins=bins, histtype='stepfilled', color='royalblue', 
 					 edgecolor='royalblue', alpha=0.7)
 
-	plt.savefig('test_user_probs.pdf',dpi=300)
+	plt.savefig('volunteer_confusion_matrices.pdf', bbox_inches='tight')
 	plt.show()
 
 
@@ -1246,7 +1253,7 @@ def plot_subject_trajectories(collection, N=200):
 	ax2.axvline(x=swap.thresholds['rejection'], lw=3, ls='dotted', color='orange', alpha=.6)
 	ax2.axvline(x=swap.prior, lw=2, ls='dotted', color='k', alpha=0.25)
 
-	ax2.legend(loc='best', frameon=False, fontsize=16)
+	ax2.legend(loc='best', frameon=False, fontsize=18)
 
 	x = hist
 	scale_y = 1e3
@@ -1254,16 +1261,16 @@ def plot_subject_trajectories(collection, N=200):
 	ax2.yaxis.set_major_formatter(ticks_y)
 
 	ax2.set_xscale('log')
-	ax2.set_yscale('log')
-	#ax2.set_ylim(0.1, 2*9999)
+	#ax2.set_yscale('log')
+	ax2.set_ylim(0.1, 2*9999)
 	ax2.set_xlim(2*swap.pmin, swap.pmax)
 	#ax2.set_xlim(swap.pmin, 1.05)
 
 
 	ax2.set_xlabel(r"Posterior Probability P(Featured|$\bf{d}$)")
-	ax2.set_ylabel(r"No. of Subjects $[\times 1000]$")
+	ax2.set_ylabel(r"No. of Subjects [$10^3$]")
 
-	plt.savefig('subject_trajectories.pdf')
+	plt.savefig('subject_trajectories.pdf', bbox_inches='tight')
 	plt.show()
 
 """
