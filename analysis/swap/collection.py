@@ -223,7 +223,6 @@ class Collection(object):
 
         return the_departed
 
-
 # ----------------------------------------------------------------------
 # Prepare to plot subjects' trajectories:
 
@@ -274,7 +273,7 @@ class Collection(object):
         upper.set_ylim(swap.Ncmax,swap.Ncmin)
         if logscale:
             upper.set_yscale('log')
-
+            
         # Vertical lines to mark prior and detect/rejection thresholds:
         x = self.thresholds()
         plt.axvline(x=swap.prior,color='gray',linestyle='dotted')#swap.prior

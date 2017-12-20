@@ -7,10 +7,9 @@ from simulation import Simulation
 from astropy.table import Table, join, vstack
 from argparse import ArgumentParser
 import numpy as np
-import pandas as pd
 import pdb, sys
 from datetime import *
-import cPickle
+import cPickle, glob
 import swap
 from GZX_SWAP_evaluation import generate_SWAP_eval_report, \
 								calculate_confusion_matrix, \
@@ -77,39 +76,28 @@ def main():
 
 		REQUIRES
 
-
-	8. LEARNING CURVE
-		The creation of this figure is in validation_gridsearch.py but it should
-		be moved here!
-
 	"""
 
 
-	make_volunteer_probabilties_plot = True
+	make_volunteer_probabilties_plot = False
 	make_subject_trajectory_plot = False 
 	make_vote_distributions_plot = False 
 	make_baseline_simulation_plot = False 
 	make_swap_variations_plot = False  
 	make_swap_gets_it_wrong_plot = False
-	# MONEYPLOT also has the code for the Component Contribution 
-	# figure cuz that makes all kind of sense, obvi.
-	make_moneyplot = False
+	make_moneyplot = True
 	make_morph_distributions_plot = False
 	make_roc_curves = False
-	make_RF_feature_importance_plot = False
+	calculate_GX_human_effort = False
 
-
-	backup_drive_dir = "/media/oxymoronic/Seagate Backup Plus Drive/MicroCenter Backup 9.5.17/home/oxymoronic/research/GZExpress/analysis/"
 
 	survey = 'GZ2_sup_PLPD5_p5_flipfeature2b'
-	dir_tertiary = backup_drive_dir+'tertiary_simulation_output'
-	dir_sim_machine = backup_drive_dir+'sims_Machine/redo_first_run_raw_combo/'
-	#dir_sim_swap = 'sims_SWAP/S_PLPD5_p5_ff_norand/'
-	dir_sim_swap = 'S_PLPD5_p5_ff_norand/'
+	dir_tertiary = 'tertiary_simulation_output'
+	dir_sim_machine = 'sims_Machine/redo_with_correct_ell_morphs'
+	dir_sim_swap = 'sims_SWAP/S_PLPD5_p5_ff_norand/'
 
 	# Load up some GZ2 data
 	# -----------------------------------------------
-	"""
 	gz2_metadata = Table.read('metadata_ground_truth_labels.fits')
 	if 'GZ2_deb_combo' not in gz2_metadata.colnames:
 		gz2_metadata['GZ2_raw_combo'] = GZ2_label_SMOOTH_NOT(bigfuckingtable,type='raw')
@@ -119,11 +107,12 @@ def main():
 	gz2_metadata['zooid'] = gz2_metadata['SDSS_id']
 	gz2_metadata['id'] = gz2_metadata['asset_id']
 
-	gz2_labels = pd.read_csv("multi-threshold_GZ2_labels.csv", index_col=False)
-
 	F = open('GZ2_cumulative_retired_subjects_expert.pickle','r')
 	gz2_cum_sub_retired = cPickle.load(F)
 
+
+	morph = Table.read("metadata_ground_truth_labels.fits")
+	pdb.set_trace()
 
 	# Load up BASELINE simulation
 	# ------------------------------------------------------
@@ -134,11 +123,11 @@ def main():
 															   mid_name+'_raw_combo'), 
 						   format='ascii')
 
-	mid_sim = Simulation(config='update_sup_PLPD5_p5_flipfeature2b_norandom2.config',
+	mid_sim = Simulation(config='configfiles/update_sup_PLPD5_p5_flipfeature2b_norandom2.config',
 						 directory=dir_sim_swap,
 						 variety='feat_or_not')
-	"""
-	
+
+
 	""" MAKE VOLUNTEER PROBABILTIES PLOT """
 	if make_volunteer_probabilties_plot:
 
@@ -150,7 +139,7 @@ def main():
 
 	if make_subject_trajectory_plot:
 
-		# Load up the SWAP Simulation COLLECTION BUREAU
+		# Load up the SWAP Simulation AGENT BUREAU
 		picklename = '{0}/{1}_collection.pickle'.format(dir_sim_swap,survey)
 		collection = swap.read_pickle(picklename, 'collection')
 		plot_subject_trajectories(collection, 200)
@@ -158,19 +147,21 @@ def main():
 
 	""" MAKE BASELINE SIMULATION PLOT """
 	if make_baseline_simulation_plot:
+
 		# BASELINE fig requires BASELINE Simulation, 
 		#						evaluation output for that sim,
 		#						cumulative retirement for GZ2
 		plot_GZX_baseline(mid_sim, mid_eval2, gz2_cum_sub_retired)
 
+
 	""" MAKE MONEY PLOT """
 	if make_moneyplot:
 		
-
-		outfile = '{}/{}_RF_accuracy_redo_raw_combo'.format(dir_tertiary,survey)
+		outfile = '{}/{}'.format(dir_sim_machine,survey)
 		
-		# this file made by explore_MLagents.py
-		F = open('{}_combo_analysis.pickle'.format(outfile), 'rb')
+		# this file made by analaze_GZX_simulation.py
+		filename = glob.glob('{}*_combo_analysis*.pickle'.format(outfile))
+		F = open(filename[0], 'rb')
 		combo_run = cPickle.load(F)
 		F.close()
 
@@ -179,8 +170,7 @@ def main():
 		MLbureau = cPickle.load(F)
 		F.close()
 
-		MONEYPLOT(92, mid_sim, mid_eval2, gz2_cum_sub_retired, combo_run, 
-				  MLbureau, gz2_labels, outfile=outfile)
+		MONEYPLOT(92, mid_sim, mid_eval2, gz2_cum_sub_retired, combo_run, MLbureau, outfile=outfile)
 
 
 	""" MORPH DISTRIBUTIONS """
@@ -188,19 +178,18 @@ def main():
 
 		# Plotting FEAT vs NOT, FALSE POS & FALSE NEGs, RETIRED vs NOT RETIRED
 		# to do all that, need files that were created.... GZX_SWAP_eval?
-		outfile = 'GZ2_sup_PLPD5_p5_flipfeature2b_RF_accuracy_redo_raw_combo'
-		machine_retired = Table.read('tertiary_simulation_output/{}_machine_retired_subjects.fits'.format(outfile))
-		machine_not_retired = Table.read('tertiary_simulation_output/{}_machine_not_retired_subjects.fits'.format(outfile))
+		filename = glob.glob('{}/*_machine_retired_subjects.fits'.format(dir_sim_machine))
+		machine_retired = Table.read(filename[0])
+		#machine_not_retired = Table.read('tertiary_simulation_output/{}_machine_not_retired_subjects.fits'.format(outfile))
 
-		plot_morph_params_1D(machine_retired, machine_not_retired, gz2_metadata, outfile)
+		plot_morph_params_1D(machine_retired, gz2_metadata, outfile=dir_sim_machine)
 
 
 	""" MAKE SWAP GETS IT WRONG PLOT """
 	if make_swap_gets_it_wrong_plot:
 
 		# Compare SWAP-retired subjects to various parameters in the GZ2 Main Catalog
-		#bigfuckingtable = Table.read('../SpaceWarps/analysis/GZ2ASSETS_NAIR_MORPH_MAIN.fits')
-		bigfuckingtable = Table.read('GZ2ASSETS_NAIR_MORPH_MAIN.fits')
+		bigfuckingtable = Table.read('../SpaceWarps/analysis/GZ2ASSETS_NAIR_MORPH_MAIN.fits')
 		gz2_bigfuckingtable = join(gz2_metadata, bigfuckingtable, keys='id')
 		
 		all_retired = mid_sim.fetchCatalog(mid_sim.retiredFileList[-1])
@@ -224,12 +213,12 @@ def main():
 		plot_vote_distributions(gz2_metadata, mid_sim)
 
 
-	if make_RF_feature_importance_plot: 
+	if calculate_GX_human_effort: 
 
-		mlbureaufile = 'sims_Machine/redo_first_run_raw_combo/GZ2_sup_PLPD5_p5_flipfeature2b_MLbureau.pickle'
+		mlbureaufile = 'sims_Machine/redo_with_correct_ell_morphs/GZ2_sup_PLPD5_p5_flipfeature2b_MLbureau.pickle'
 		MLbureau = swap.read_pickle(mlbureaufile,'bureau')
 
-		machine_meta = 'sims_Machine/redo_first_run_raw_combo/GZ2_sup_PLPD5_p5_flipfeature2b_metadata.pickle'
+		machine_meta = 'sims_Machine/redo_with_correct_ell_morphs/GZ2_sup_PLPD5_p5_flipfeature2b_metadata.pickle'
 		all_subjects = swap.read_pickle(machine_meta, 'metadata').subjects
 
 		#subjects = all_subjects[all_subjects['retired_date']!='2016-09-10']
@@ -248,7 +237,7 @@ def main():
 
 		# Assume that only Human Effort came from training sample
 		effort = np.sum(swap_retired['Nclass'])
-		print effort
+		print "Human effort for GZX:", effort
 
 		# LOOK AT MOST IMPORTANT FEATURES FOR MACHINE
 		machine = MLbureau.member['RF_accuracy']
@@ -284,9 +273,11 @@ def main():
 
 		#pdb.set_trace()
 
-		fig, ax = plt.figure(figsize=(11,8))
-		rects1 = ax.bar(ind, avg[sort_indices], color='red', 
-						yerr=std[sort_indices], ecolor='black', align='center')
+		fig = plt.figure(figsize=(11,8))
+		ax = fig.add_subplot(111)
+		rects1 = ax.bar(ind, avg[sort_indices], yerr=std[sort_indices],
+						color='red',  edgecolor='black',
+						capsize=5, align='center')
 
 		ax.set_ylabel('Feature Importance')
 		ax.set_xticks(ind)
@@ -294,7 +285,7 @@ def main():
 		ax.set_ylim(0, 0.45)
 		ax.set_yticks([0., .1, .2, .3, .4])
 
-		plt.savefig('RF_feature_importance_4paper.pdf')
+		plt.savefig('RF_feature_importance_4paper.pdf', bbox_inches='tight')
 		plt.show()
 
 		#pdb.set_trace()

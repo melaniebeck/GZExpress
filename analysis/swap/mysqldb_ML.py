@@ -3,12 +3,10 @@ import swap
 import numpy as np
 import os,sys,datetime,pdb
 
-"""
 try: import MySQLdb as mdb
 except:
     print "MySQLdb: MySQLdb is not installed. You can still practise though --really?"
     # sys.exit()
-"""
 
 # ======================================================================
 

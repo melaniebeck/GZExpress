@@ -87,8 +87,13 @@ class StorageLocker(object):
 
     def fetch_subsample(self, sample_type=None, class_label=None):
 
-        if sample_type == 'test': sample_type = 'test '
-        selection = (self.subjects['MLsample']==sample_type)
+        if sample_type == 'test': 
+            try:
+                selection = (self.subjects['MLsample']==sample_type)
+            except:
+                selection = (self.subjects['MLsample']=='test ')
+        else:
+            selection = (self.subjects['MLsample']==sample_type)
 
         if np.sum(selection) > 0:
             subsample = self.subjects[selection]

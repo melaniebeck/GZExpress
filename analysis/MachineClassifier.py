@@ -70,6 +70,8 @@ def MachineClassifier(options, args):
         print MachineClassifier.__doc__
         return
 
+    machine_sim_directory = 'sims_Machine/redo_with_circular_morphs/'
+
     tonights = swap.Configuration(config)
     
     # Read the pickled random state file
@@ -137,7 +139,8 @@ def MachineClassifier(options, args):
     """
 
     try:
-        train_meta, train_features = ml.extract_features(train_sample)
+        train_meta, train_features = ml.extract_features(train_sample, 
+                                        keys=['M20_corr', 'C_corr', 'E', 'A_corr', 'G_corr'])
         original_length = len(train_meta)
 
     except TypeError:
@@ -164,7 +167,8 @@ def MachineClassifier(options, args):
     valid_sample = storage.fetch_subsample(sample_type='valid',
                                            class_label='Expert_label')
     try:
-        valid_meta, valid_features = ml.extract_features(valid_sample)
+        valid_meta, valid_features = ml.extract_features(valid_sample,
+                                        keys=['M20_corr', 'C_corr', 'E', 'A_corr', 'G_corr'])
     except:
         print "ML: there are no subjects with the label 'valid'!"
     else:
@@ -230,7 +234,7 @@ def MachineClassifier(options, args):
             # any scikit-learn machine will do. However, non-sklearn machines..
             # That will be a bit trickier! (i.e. Phil's conv-nets)
             general_model = GridSearchCV(estimator=RF(n_estimators=30), 
-                                         param_grid=params, n_jobs=-1,
+                                         param_grid=params, n_jobs=31,
                                          error_score=0, scoring=metric, cv=cv) 
             
             # Train the model -- k-fold cross validation is embedded
@@ -286,7 +290,8 @@ def MachineClassifier(options, args):
                 """
 
                 try:
-                    test_meta, test_features = ml.extract_features(test_sample)
+                    test_meta, test_features = ml.extract_features(test_sample,
+                                                keys=['M20_corr', 'C_corr', 'E', 'A_corr', 'G_corr'])
                 except:
                     print "ML: there are no subjects with the label 'test'!"
                     print "ML: Either there is nothing more to do or there is a BIG mistake..."
@@ -324,9 +329,12 @@ def MachineClassifier(options, args):
                 # If is hasn't been done already, save the current directory
                 # ---------------------------------------------------------------------
                 tonights.parameters['trunk'] = survey+'_'+tonights.parameters['start']
-                tonights.parameters['dir'] = os.getcwd()+'/'+tonights.parameters['trunk']
-                
-                filename=tonights.parameters['dir']+'_'+Name+'.fits'
+                # This is the standard directory... 
+                #tonights.parameters['dir'] = os.getcwd()+'/'+tonights.parameters['trunk']
+
+                # This is to put files into the sims_Machine/... directory. 
+                tonights.parameters['dir'] = os.getcwd()
+                filename=tonights.parameters['dir']+'/'+tonights.parameters['trunk']+'_'+Name+'.fits'
                 test_meta.write(filename)
 
                 count=0
@@ -345,11 +353,12 @@ def MachineClassifier(options, args):
                         storage.subjects['retired_date'][idx] = time
                         count+=1
 
-                
                 print "MC: Machine classifed {0} subjects with >= 90% confidence".format(count)
                 print "ML: Of those, {0} had never been seen by SWAP".format(noSWAP)
 
     
+    tonights.parameters['trunk'] = survey+'_'+tonights.parameters['start']
+    tonights.parameters['dir'] = os.getcwd()
     if not os.path.exists(tonights.parameters['dir']):
         os.makedirs(tonights.parameters['dir'])
 
@@ -423,80 +432,80 @@ if __name__ == '__main__':
 
     MachineClassifier(options, args)
 
-                        #pdb.set_trace()
+    #pdb.set_trace()
 
-                        """
-                        ID = str(sub['asset_id'])
-                        try: 
-                            #if prob >= threshold: status = 'detected'
-                            #else: status = 'rejected'
-                            #sample.member[ID].retiredby = 'machine'
-                            #sample.member[ID].state = 'inactive'
-                            #sample.member[ID].status = status
-                        except:
-                            noSWAP += 1
+    """
+            ID = str(sub['asset_id'])
+            try: 
+                #if prob >= threshold: status = 'detected'
+                #else: status = 'rejected'
+                #sample.member[ID].retiredby = 'machine'
+                #sample.member[ID].state = 'inactive'
+                #sample.member[ID].status = status
+            except:
+                noSWAP += 1
 
 
-                        # We can't do this with the current pickles... 
-                        # Initialize the subject in SWAP Collection
-                        ID = sub['asset_id']
+            # We can't do this with the current pickles... 
+            # Initialize the subject in SWAP Collection
+            ID = sub['asset_id']
 
-                        try: 
-                            test = sample.member[ID]
-                        except: 
-                            sample.member[ID] = swap.Subject(ID, str(sub['SDSS_id']),
-                                                             category='test',
-                                                             kind='test',
-                                                             flavor='test',
-                                                             truth='UNKNOWN',
-                                                             thresholds=swap_thresholds, 
-                                                             location=sub['external_ref'],
-                                                             prior=prior) 
+            try: 
+                test = sample.member[ID]
+            except: 
+                sample.member[ID] = swap.Subject(ID, str(sub['SDSS_id']),
+                                                 category='test',
+                                                 kind='test',
+                                                 flavor='test',
+                                                 truth='UNKNOWN',
+                                                 thresholds=swap_thresholds, 
+                                                 location=sub['external_ref'],
+                                                 prior=prior) 
 
-                        # THIS NEEDS TO FUCKING CHANGE. =(
-                        if p >= threshold: 
-                            result = 'FEAT'
-                            status = 'detected'
-                        else: 
-                            result = 'NOT'
-                            status = 'rejected'
+            # THIS NEEDS TO FUCKING CHANGE. =(
+            if p >= threshold: 
+                result = 'FEAT'
+                status = 'detected'
+            else: 
+                result = 'NOT'
+                status = 'rejected'
 
-                        sample.member[ID].was_described(by=MLbureau.member[Name], 
-                                                        as_being=result,
-                                                        at_time=time,
-                                                        while_ignoring=0,
-                                                        haste=True)
-                        
-                        # Try to jerry-rig something here....
-                        if p >= threshold: status = 'detected'
-                        else: status = 'rejected'
+            sample.member[ID].was_described(by=MLbureau.member[Name], 
+                                            as_being=result,
+                                            at_time=time,
+                                            while_ignoring=0,
+                                            haste=True)
+            
+            # Try to jerry-rig something here....
+            if p >= threshold: status = 'detected'
+            else: status = 'rejected'
 
-                        try:
-                            sample.member[ID].retiredby = 'machine'
-                            sample.member[ID].state = 'inactive'
-                            sample.member[ID].status = status
-                        else:
-                            print "MC: subject {0} not found in collection. Bummer".format(ID)
-                        """
+            try:
+                sample.member[ID].retiredby = 'machine'
+                sample.member[ID].state = 'inactive'
+                sample.member[ID].status = status
+            else:
+                print "MC: subject {0} not found in collection. Bummer".format(ID)
+            """
 
-        """
-        labels, counts = np.unique(train_labels, return_counts=True)
+"""
+labels, counts = np.unique(train_labels, return_counts=True)
 
-        majority = np.max(counts)
+majority = np.max(counts)
 
-        for label, count in zip(labels, counts):
-            if majority == count:
-                major_idx = np.where(train_labels == label)[0]
-                major_idx = major_idx[:np.sum(train_labels==1-label)]
+for label, count in zip(labels, counts):
+if majority == count:
+    major_idx = np.where(train_labels == label)[0]
+    major_idx = major_idx[:np.sum(train_labels==1-label)]
 
-                minor_idx = np.where(train_labels == 1-label)[0]
+    minor_idx = np.where(train_labels == 1-label)[0]
 
-                train_features = np.concatenate([train_features[major_idx],
-                                                 train_features[minor_idx]])
+    train_features = np.concatenate([train_features[major_idx],
+                                     train_features[minor_idx]])
 
-                train_meta = np.concatenate([train_meta[major_idx],
-                                             train_meta[minor_idx]])
+    train_meta = np.concatenate([train_meta[major_idx],
+                                 train_meta[minor_idx]])
 
-                train_labels = np.concatenate([train_labels[major_idx],
-                                               train_labels[minor_idx]])
-        """
+    train_labels = np.concatenate([train_labels[major_idx],
+                                   train_labels[minor_idx]])
+"""

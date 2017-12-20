@@ -353,6 +353,7 @@ class Subject(object):
 # ----------------------------------------------------------------------
 # Plot subject's trajectory, as an overlay on an existing plot:
 
+
     def plot_trajectory(self,axes,highlight=False):
 
         plt.sca(axes[0])

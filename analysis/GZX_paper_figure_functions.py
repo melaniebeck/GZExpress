@@ -16,8 +16,8 @@ import pdb
 mpl.rcParams.update({'font.size': 24, 
 							'font.family': 'STIXGeneral', 
 							'mathtext.fontset': 'stix',
-							'xtick.labelsize':20,
-							'ytick.labelsize':20,
+							'xtick.labelsize':18,
+							'ytick.labelsize':18,
 							'xtick.major.width':2,
 							'ytick.major.width':2,
 							'axes.linewidth':2,
@@ -112,7 +112,7 @@ def plot_GZX_baseline(GZX_baseline_run, GZX_baseline_eval, gz2_retired, single=F
 	else:
 		# PLOT RETIREMENT & QUALITY ON SEPARATE FIGURES (PER BROOKE)
 
-		fig = plt.figure(figsize=(10,15))
+		fig = plt.figure(figsize=(11,16))
 		gs = gridspec.GridSpec(2,1, wspace=0.1, hspace=0.01)
 
 		ax = fig.add_subplot(gs[1])
@@ -120,13 +120,13 @@ def plot_GZX_baseline(GZX_baseline_run, GZX_baseline_eval, gz2_retired, single=F
 
 		GZX_baseline_run.plot_cumulative_retired_subjects(ax, plot_combined=True)
 		ax.plot(days, gz2_retired, color='midnightblue', ls='--', lw=4, label='GZ2')
-		ax.legend(loc='best', fontsize=24)
+		ax.legend(loc='best')
 
 		ax.set_ylim(0,260000)
 
 		ax.set_xlabel('Days in GZ2 Project')
-		ax.set_ylabel(r'Cumulative retired subjects [$10^3$]', fontsize=28)
-		ax.tick_params(direction='in')
+		ax.set_ylabel(r'Cumulative retired subjects $\times 1000$', fontsize=28)
+
 		# -----------------------------------------------------------
 
 		ax = fig.add_subplot(gs[0])
@@ -141,12 +141,10 @@ def plot_GZX_baseline(GZX_baseline_run, GZX_baseline_eval, gz2_retired, single=F
 		ax.set_ylim(0.75, 1.0)
 		ax.set_xlim(0,len(days)-1)
 
-		ax.legend(loc='lower left', fontsize=24)
-		ax.tick_params(direction='in')
+		ax.legend(loc='lower left')
 
-	#gs.tight_layout(fig)
-	plt.savefig('GZX_eval_and_retirement_baseline_4paper.pdf', bbox_inches='tight')
-	#plt.show()
+	plt.savefig('GZX_eval_and_retirement_baseline_4paper.pdf')
+	plt.show()
 
 
 ###############################################################################
@@ -212,7 +210,7 @@ def plot_GZX_evaluation_spread(num_days, GZX_low_run, GZX_baseline_run,
 
 	if single_figure:
 		ax.set_xlabel('Days in GZ2 project')
-		plt.savefig("GZX_evaluation_%s.pdf"%outfile, bbox_inches='tight')
+		plt.savefig("GZX_evaluation_%s.pdf"%outfile)
 		plt.show()
 		plt.close()
 	else:
@@ -270,12 +268,12 @@ def plot_GZX_cumulative_retirement_spread(num_days, low_run, mid_run, high_run,
 	ax.yaxis.set_major_formatter(ticks_y)
 
 	ax.set_xlabel('Days in GZ2 Project')
-	ax.set_ylabel(r'Cumulative retired subjects [$10^3$]')
+	ax.set_ylabel(r'Cumulative retired subjects $\times 1000$')
 
 	ax.legend(loc='best', frameon=True)
 
 	if single_figure:
-		plt.savefig('GZX_cumulative_retirement_{0}'.format(outfile), bbox_inches='tight')
+		plt.savefig('GZX_cumulative_retirement_{0}'.format(outfile))
 		plt.show()
 		plt.close()
 
@@ -285,17 +283,18 @@ def plot_GZX_cumulative_retirement_spread(num_days, low_run, mid_run, high_run,
 #			THE MONEY PLOT
 ###############################################################################
 
-def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau, 
-			  gz2_labels, outfile='.'):
-	"""
-	MONEYPLOT is obvious but this code snippet also creates the 
-	Compontent Contribution figure (How SWAP and RF contribute to retiremnt)
-	"""
+def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau, outfile):
 
-	# Number of subjects that are labeled Featured in GZ2
-	sample_feat = np.sum(gz2_labels['GZ2_raw_label_0.5'] == 0)
-	# Number of subjects that are labeled Not Featured in GZ2 
-	sample_not = np.sum(gz2_labels['GZ2_raw_label_0.5'] == 1)
+	"""
+	GOAL: plot GZ2, SWAP-only, and GZX retirement rates
+	"""
+	simDir = "sims_Machine/redo_with_correct_ell_morphs"
+	import swap
+	meta = swap.read_pickle('{}/GZ2_sup_PLPD5_p5_flipfeature2b_metadata.pickle'.format(simDir), 'metadata')
+	sample = meta.subjects
+
+	sample_feat = np.sum(sample['GZ2_raw_combo'] == 0)
+	sample_not = np.sum(sample['GZ2_raw_combo'] == 1)
 
 	dates = [datetime(2009, 02, 12)+timedelta(days=i) for i in range(num_days)]
 	dates = np.array([datetime.strftime(d, '%Y-%m-%d_%H:%M:%S') for d in dates])
@@ -371,6 +370,14 @@ def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau,
 	# No x tick labels cuz this panel is on top
 	ax.xaxis.set_ticklabels([])
 	"""
+
+	print "Fraction of GZX retired by SWAP:"
+	print float(combo_eval['swap_total'][-1]+combo_eval['valid_total'][-1])/combo_eval['total_retired'][-1]
+	print "Fraction of GZX retired by RF:"
+	print float(combo_eval['machine_total'][-1])/combo_eval['total_retired'][-1]
+	print ""
+
+
 	rfcolor = 'teal'
 	swapcolor = 'coral'
 
@@ -383,12 +390,12 @@ def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau,
 
 	gzx_tot = ax.plot(short_days, combo_eval['total_retired'], color='k')
 	swap_only = ax.plot(short_days, mid_ret[:len(short_days)], color='grey', ls=':')
-	gzx_rf = ax.plot(short_days, combo_eval['machine_total'], color=rfcolor, ls='-.', lw=4)
+	gzx_rf = ax.plot(short_days, combo_eval['machine_total'], color=rfcolor, ls='-.', lw=6)
 	gzx_swap = ax.plot(short_days, combo_eval['swap_total']+combo_eval['valid_total'], 
 					   color=swapcolor, ls='--', lw=4)
 
 	ax.set_xlabel('Days in GZ2 Project')
-	ax.set_ylabel(r'Cumulative retired subjects [$10^3$]')
+	ax.set_ylabel(r'Cumulative retired subjects $\times 1000$')
 	ax.set_xlim(0, len(short_days)-1)
 	ax.set_ylim(0, 260000)
 
@@ -398,19 +405,28 @@ def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau,
 	ax.yaxis.set_major_formatter(ticks_y)
 
 	ax.legend((gzx_tot[0], gzx_rf[0], gzx_swap[0], swap_only[0]), 
-			  ('GZX: SWAP+RF', 'GZX: RF', 'GZX: SWAP', 'SWAP-only'), 
-			  loc='upper left', fontsize=24)
-	
+			  ('GZX: SWAP+RF', 'GZX: RF', 'GZX: SWAP', 'SWAP-only'), loc='best')
 
+
+	print "Fraction of GZX retired by SWAP as FEATURED:"
+	print swap_tps/sample_feat
+	print "FRaction of GZX retired by RF as FEATURED:"
+	print combo_eval['machine_tps']/sample_feat
+
+	print ""
+	print "Fraction of GZX retired by SWAP as NOT FEAT:"
+	print swap_tns/sample_not
+	print "Fraction of GZX retired by RF as NOT FEAT:"
+	print combo_eval['machine_tns']/sample_not
+	
+	# --------- PLOT RETIRED AS A FRACTION OF TOTAL ----------------------
 
 	ax = fig.add_subplot(gs[2, 0])
 	ax.grid(linestyle='dotted',linewidth=.5)
-
-	# --------- PLOT RETIRED AS A FRACTION OF TOTAL ----------------------
 	
 	plt.plot((swap_tps+combo_eval['machine_tps'])/sample_feat, color='k')
 	plt.plot(swap_tps/sample_feat, color=swapcolor, ls='--', lw=4)
-	plt.plot(combo_eval['machine_tps']/sample_feat, color=rfcolor, ls='-.', lw=4)
+	plt.plot(combo_eval['machine_tps']/sample_feat, color=rfcolor, ls='-.', lw=6)
 	plt.ylabel("Fraction")
 	plt.xlabel('Days in GZ2 project')
 	ax.set_xlim(0, len(short_days)-1)
@@ -422,20 +438,16 @@ def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau,
 
 	plt.plot((swap_tns+combo_eval['machine_tns'])/sample_not, color='k')
 	plt.plot(swap_tns/sample_not, color=swapcolor, ls='--', lw=4)
-	plt.plot(combo_eval['machine_tns']/sample_not, color=rfcolor, ls='-.', lw=4)
+	plt.plot(combo_eval['machine_tns']/sample_not, color=rfcolor, ls='-.', lw=6)
 	plt.xlabel('Days in GZ2 project')
 	ax.yaxis.set_ticklabels([])
 	ax.set_xlim(0, len(short_days)-1)
 	ax.set_ylim(0, .7)
 	ax.text(2, 0.61, 'Not Featured')
-	#ax.set_yticks([])
-	for tic in ax.yaxis.get_major_ticks():
-	    tic.tick1On = tic.tick2On = False
-
 
 	gs.tight_layout(fig)
-	plt.savefig('GZX_component_contributions.pdf', bbox_inches='tight')
-	#plt.show()
+	plt.savefig('{}_GZX_component_contributions.pdf'.format(outfile))
+	plt.show()
 
 	pdb.set_trace()
 
@@ -511,10 +523,10 @@ def MONEYPLOT(num_days, mid_run, mid_eval, gz2_retired, combo_eval, MLbureau,
 			  loc='center right')
 
 	ax.set_xlabel('Days in GZ2 Project')
-	ax.set_ylabel(r'Cumulative retired subjects [$10^3$]')
+	ax.set_ylabel(r'Cumulative retired subjects $\times 1000$')
 
 	gs.tight_layout(fig)
-	plt.savefig('GZX_moneyplot.pdf', bbox_inches='tight')
+	plt.savefig('{}_moneyplot.pdf'.format(outfile))
 
 	plt.show()
 
@@ -613,7 +625,7 @@ def plot_user_probabilities(bureau, number_of_users):
 	lowerhistax.hist(PL_full, bins=bins, histtype='stepfilled', color='royalblue', 
 					 edgecolor='royalblue', alpha=0.7)
 
-	plt.savefig('volunteer_confusion_matrices.pdf', bbox_inches='tight')
+	plt.savefig('test_user_probs.pdf',dpi=300)
 	plt.show()
 
 
@@ -893,7 +905,7 @@ def swap_gets_it_wrong(fps, fns, full_SWAP):
 ###############################################################################
 #			PLOT  DISTRIBUTIONS OF MORPHOLOGY PARAMS 
 ###############################################################################
-def plot_morph_params_1D(machine_retired, machine_not_retired, metadata, outfile, **kwargs):
+def plot_morph_params_1D(machine_retired, metadata, outfile, **kwargs):
 	"""
 	1D distributions of the morphologly parameters: G, M20, C, A, elipticity
 	"""
@@ -932,11 +944,11 @@ def plot_morph_params_1D(machine_retired, machine_not_retired, metadata, outfile
 	for subset1, subset2 in zip(subsets1, subsets2):
 
 		ax = fig.add_subplot(gs[0+i,0])
-		ax.hist(metadata['G'], bins=30, normed=True, range=(.4,.8),alpha=0.5,
+		ax.hist(metadata['G_corr'], bins=30, normed=True, range=(.4,.8),alpha=0.5,
 				histtype='step', color='black', lw=3)
-		ax.hist(subset1['G'], bins=30, normed=True, range=(.4,.8), lw=2, alpha=0.6, 
+		ax.hist(subset1['G_corr'], bins=30, normed=True, range=(.4,.8), lw=2, alpha=0.6, 
 				histtype='stepfilled', color=colorset1[i], edgecolor=edgecolor1)
-		ax.hist(subset2['G'], bins=30, normed=True, range=(.4,.8), lw=2, alpha=0.5,
+		ax.hist(subset2['G_corr'], bins=30, normed=True, range=(.4,.8), lw=2, alpha=0.5,
 				histtype='stepfilled', color=colorset2[i], edgecolor=edgecolor2)
 
 		if i!=num_sets-1:
@@ -949,11 +961,11 @@ def plot_morph_params_1D(machine_retired, machine_not_retired, metadata, outfile
 		ax.set_ylabel('Normalized Distribution')
 
 		ax = fig.add_subplot(gs[0+i,1])
-		ax.hist(metadata['M20'], bins=30, normed=True, range=(-3., -1.), alpha=0.5,
+		ax.hist(metadata['M20_corr'], bins=30, normed=True, range=(-3., -1.), alpha=0.5,
 				histtype='step', color='black', lw=3)
-		ax.hist(subset1['M20'], bins=30, normed=True, range=(-3., -1.), lw=2, alpha=0.6, 
+		ax.hist(subset1['M20_corr'], bins=30, normed=True, range=(-3., -1.), lw=2, alpha=0.6, 
 				histtype='stepfilled', color=colorset1[i], edgecolor=edgecolor1)
-		ax.hist(subset2['M20'], bins=30, normed=True, range=(-3., -1.), lw=2, alpha=0.5,  
+		ax.hist(subset2['M20_corr'], bins=30, normed=True, range=(-3., -1.), lw=2, alpha=0.5,  
 				histtype='stepfilled', color=colorset2[i], edgecolor=edgecolor2)
 		ax.set_xlim(-1., -3.0)
 
@@ -965,11 +977,11 @@ def plot_morph_params_1D(machine_retired, machine_not_retired, metadata, outfile
 		ax.set_yticklabels([])
 
 		ax = fig.add_subplot(gs[0+i,2])
-		ax.hist(metadata['C'], bins=30, normed=True, range=(1.5, 5.5), alpha=0.5,
+		ax.hist(metadata['C_corr'], bins=30, normed=True, range=(1.5, 5.5), alpha=0.5,
 				histtype='step', color='black', lw=3)
-		ax.hist(subset1['C'], bins=30, normed=True, range=(1.5, 5.5), lw=2,  alpha=0.6, 
+		ax.hist(subset1['C_corr'], bins=30, normed=True, range=(1.5, 5.5), lw=2,  alpha=0.6, 
 				histtype='stepfilled', color=colorset1[i], edgecolor=edgecolor1)
-		ax.hist(subset2['C'], bins=30, normed=True, range=(1.5, 5.5), lw=2, alpha=0.5, 
+		ax.hist(subset2['C_corr'], bins=30, normed=True, range=(1.5, 5.5), lw=2, alpha=0.5, 
 				histtype='stepfilled', color=colorset2[i], edgecolor=edgecolor2)
 
 		if i!=num_sets-1:
@@ -1000,12 +1012,12 @@ def plot_morph_params_1D(machine_retired, machine_not_retired, metadata, outfile
 
 
 		ax = fig.add_subplot(gs[0+i,4])
-		ax.hist(metadata['A'], bins=30, normed=True, range=(0.,0.4),alpha=0.5,
+		ax.hist(metadata['A_corr'], bins=30, normed=True, range=(0.,0.4),alpha=0.5,
 				histtype='step', color='black', lw=3, label='All subjects')
-		ax.hist(subset1['A'], bins=30, normed=True, range=(0.,0.4), lw=2, alpha=0.6, 
+		ax.hist(subset1['A_corr'], bins=30, normed=True, range=(0.,0.4), lw=2, alpha=0.6, 
 				histtype='stepfilled', color=colorset1[i], edgecolor=edgecolor1, 
 				label=labels1[i])
-		ax.hist(subset2['A'], bins=30, normed=True, range=(0.,0.4), lw=2, alpha=0.5, 
+		ax.hist(subset2['A_corr'], bins=30, normed=True, range=(0.,0.4), lw=2, alpha=0.5, 
 				histtype='stepfilled', color=colorset2[i], edgecolor=edgecolor2,
 				label=labels2[i])
 
@@ -1029,7 +1041,7 @@ def plot_morph_params_1D(machine_retired, machine_not_retired, metadata, outfile
 		i += 1
 
 	gs.tight_layout(fig, rect=[0, 0.0005, 1, 1])
-	plt.savefig('{}_morph_params_raw_labels_4paper.pdf'.format(outfile))
+	plt.savefig('{}/morph_params_raw_labels_4paper.pdf'.format(outfile), bbox_inches='tight')
 	plt.show()
 
 
@@ -1253,7 +1265,7 @@ def plot_subject_trajectories(collection, N=200):
 	ax2.axvline(x=swap.thresholds['rejection'], lw=3, ls='dotted', color='orange', alpha=.6)
 	ax2.axvline(x=swap.prior, lw=2, ls='dotted', color='k', alpha=0.25)
 
-	ax2.legend(loc='best', frameon=False, fontsize=18)
+	ax2.legend(loc='best', frameon=False, fontsize=16)
 
 	x = hist
 	scale_y = 1e3
@@ -1261,16 +1273,16 @@ def plot_subject_trajectories(collection, N=200):
 	ax2.yaxis.set_major_formatter(ticks_y)
 
 	ax2.set_xscale('log')
-	#ax2.set_yscale('log')
-	ax2.set_ylim(0.1, 2*9999)
+	ax2.set_yscale('log')
+	#ax2.set_ylim(0.1, 2*9999)
 	ax2.set_xlim(2*swap.pmin, swap.pmax)
 	#ax2.set_xlim(swap.pmin, 1.05)
 
 
 	ax2.set_xlabel(r"Posterior Probability P(Featured|$\bf{d}$)")
-	ax2.set_ylabel(r"No. of Subjects [$10^3$]")
+	ax2.set_ylabel(r"No. of Subjects $[\times 1000]$")
 
-	plt.savefig('subject_trajectories.pdf', bbox_inches='tight')
+	plt.savefig('subject_trajectories.pdf')
 	plt.show()
 
 """

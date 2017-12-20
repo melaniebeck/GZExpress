@@ -4,7 +4,7 @@ import swap
 
 import subprocess,sys,os,time
 import numpy as np
-from subject import Ntrajectory
+#from subject import Ntrajectory
 
 # ======================================================================
 

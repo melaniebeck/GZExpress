@@ -36,6 +36,7 @@ def compute_label(smooth, featured, star, threshold=0.5):
 		return truth['UNKNOWN']
 
 
+
 def compute_swap_label(value):
 	if value >= 0.99:
 		return 0
@@ -46,7 +47,6 @@ def compute_swap_label(value):
 
 
 def plot_results():
-	# Where did I check these??? Damn you, Melanie!
 	SWAP_only_total_votes = 2298772
 	SWAP_only_accuracy = .957
 	SWAP_only_subjects_retired = 226124
@@ -85,20 +85,19 @@ def plot_results():
 	ax2.bar(5, GZX_total_votes/1e6, width=2, color='gray', alpha=0.4)
 	ax2.set_ylabel("Human Effort [1e6]")
 
-	plt.savefig('retirement_limits.png')
+	plt.savefig('retirement_limites.png')
 	plt.show()
 
 	pdb.set_trace()
 
 
 
-sim = Simulation(config="update_sup_PLPD5_p5_flipfeature2b_norandom2.config", 
-				 directory="S_PLPD5_p5_ff_norand/", 
+sim = Simulation(config="configfiles/update_sup_PLPD5_p5_flipfeature2b_norandom2.config", 
+				 directory="sims_SWAP/S_PLPD5_p5_ff_norand/", 
 				 variety='feat_or_not')
 
-
 retired = sim.fetchCatalog(sim.retiredFileList[-1])
-#retired = retired.to_pandas()
+retired = retired.to_pandas()
 retired['name'] = retired['zooid']
 retired['swap_label'] = retired.apply(lambda x: compute_swap_label(x['P']), axis=1)
 	
@@ -108,8 +107,7 @@ retired['swap_label'] = retired.apply(lambda x: compute_swap_label(x['P']), axis
 votesall = pd.read_csv('multi-threshold_GZ2_labels.csv')
 
 
-N = np.arange(10, 40, 5)
-N = np.insert(N, 0, 9, axis=0)
+N = np.arange(15, 40, 5)
 print N
 
 swap_only_acc = []
@@ -118,31 +116,20 @@ total_votes = []
 
 for n in N: 
 
-	try: 
-		votesfewer = pd.read_table('asset_agg{}votes_task1.tsv'.format(n), 
-								   delimiter='\t', header=None, 
-								   names=['asset_id', 'name', 'smooth_count', 'feature_count', 'star_count'])
-	except:
-		votesfewer =pd.read_csv('asset_agg{}votes_task1.csv'.format(n))
-	
+	votesfewer = pd.read_table('asset_agg{}votes.tsv'.format(n), delimiter='\t')
 	votesfewer = votesfewer[votesfewer.name < 7000000000000000000]
 
 
-	# How many votes were there actually (some subjects have fewer than 30)
-	votesfewer['total_votes'] = votesfewer.smooth_count + votesfewer.feature_count + votesfewer.star_count
-
-
 	# Turn the counts into "vote fractions"
-	votesfewer['smooth_fraction'] = votesfewer.smooth_count / votesfewer['total_votes']
-	votesfewer['feature_fraction'] = votesfewer.feature_count / votesfewer['total_votes']
-	votesfewer['star_fraction'] = votesfewer.star_count / votesfewer['total_votes']
+	votesfewer['smooth_fraction'] = votesfewer.smooth_count / n
+	votesfewer['feature_fraction'] = votesfewer.feature_count / n
+	votesfewer['star_fraction'] = votesfewer.star_count / n
+
 
 	# Compute labels
-	votesfewer['GZ2_raw{}label_0.5'.format(n)] = votesfewer.apply(lambda x: compute_label(x['smooth_fraction'], 
-																		  	   x['feature_fraction'], 
-																		  	   x['star_fraction']), axis=1)
-	# Save this to file for later exploration
-	votesfewer.to_csv("asset_agg{}votes_task1.csv".format(n))
+	votesfewer['GZ2_raw15label_0.5'] = votesfewer.apply(lambda x: compute_label(x['smooth_fraction'], 
+																		  x['feature_fraction'], 
+																		  x['star_fraction']), axis=1)
 
 	# select only those that were also retired by SWAP
 	result1 = pd.merge(votesfewer, retired, on='name')
@@ -155,22 +142,22 @@ for n in N:
 	#clean_result2 = result2.loc[result2['GZ2_raw_label_0.5'] >= 0]
 	clean_result2 = result2
 
+	swap_only_acc.append(np.sum(clean_result1['GZ2_raw_label_0.5'] == 
+						   		clean_result1['GZ2_raw15label_0.5'])/float(len(clean_result1)))
 
-	swap_only_acc.append(np.sum(clean_result1['GZ2_raw{}label_0.5'.format(n)] == 
-						   		clean_result1['GZ2_raw_label_0.5'])/float(len(clean_result1)))
-
-	full_acc.append(np.sum(clean_result2['GZ2_raw{}label_0.5'.format(n)] == 
-						   clean_result2['GZ2_raw_label_0.5'])/float(len(clean_result2)))
+	full_acc.append(np.sum(clean_result2['GZ2_raw_label_0.5'] == 
+						   clean_result2['GZ2_raw15label_0.5'])/float(len(clean_result2)))
 
 	#pdb.set_trace()
 
 
-"Finished processing all N vote aggregations."
+#total_votes = N*len(clean_result)
+
 pdb.set_trace()
 
-tt = Table(data=[N, swap_only_acc, full_acc], 
-		   names=("votes_per_gal", "swap_sample_acc", "gz2_sample_acc"))
+tt = Table(data=[N, total_votes, accuracy], 
+		   names=("votes_per_gal", "total_votes", "accuracy"))
 
-tt.write("GZ2_vary_retirement_criterion.csv", overwrite=True)
+tt.write("GZ2_vary_retirement_criterion.csv")
 
 pdb.set_trace()

@@ -52,17 +52,17 @@ class MySQLdb(object):
 
         if word == 'since':
             # GENERISIZE THIS
-            query = ("select * from task1_full as t "
+            query = ("select * from task1_expert as t "
                      "where t.created_at > '%s'"%str(t))
             self.cur1.execute(query)
 
         elif word == 'before':
-            query = ("select * from task1_full as t "
+            query = ("select * from task1_expert as t "
                      "and t.created_at < '%s'"%str(t))
             self.cur1.execute(query)
 
         elif word == 'between':
-            query = ("select * from task1_expert_new as t "
+            query = ("select * from task1_expert as t "
                 "where t.created_at between '%s' and '%s'"%(str(t), str(t2)))
             self.cur1.execute(query)
 

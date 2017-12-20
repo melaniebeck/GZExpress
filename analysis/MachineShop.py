@@ -12,6 +12,10 @@ import cPickle
 
 
 def MachineShop(args):
+
+    # Buh. I never built in the ability to change directories on the fly
+    #machine_sim_directory = 'sims_Machine/redo_with_circular_morphs'
+
     
     """
     Sometimes you just need to the run the Machine on a bunch of already
@@ -24,9 +28,11 @@ def MachineShop(args):
     params = the.parameters
 
 
-    sim = Simulation(config=args.config, directory='.', variety='feat_or_not')
+    # This pulls up the FIDUCIAL SWAP simulation
+    sim = Simulation(config=args.config, directory='sims_SWAP/S_PLPD5_p5_ff_norand', variety='feat_or_not')
 
     # this was originally set to 2/17/09 which is WRONG
+    # 11/2/17: WHY?? Fuck you, Past Melanie. What am I supposed to do here??
     first_day = dt.datetime(2009, 2, 12)
     today = dt.datetime.strptime(params['start'], '%Y-%m-%d_%H:%M:%S')
     start_day = dt.datetime(2009, 2, 17)
@@ -106,6 +112,7 @@ def MachineShop(args):
 
         print "Newly retired subjects: {}".format(len(ids_retired_tonight))
 
+
         # Now that I have the ids from the previous night, adjust the 
         # metadata file to reflect what was retired / add SWAP info
         for ID in list(ids_retired_tonight):
@@ -115,7 +122,8 @@ def MachineShop(args):
 
             # Update them in metadata file as training sample for MC
             # DOUBLE CHECK THAT IT HAS NOT BEEN RETIRED BY MACHINE!!!
-            if subjects['MLsample'][mask] == 'test ':
+            #if subjects['MLsample'][mask] == 'test ':
+            if subjects['MLsample'][mask] == 'test':
                 SWAP_retired+=1
 
                 subjects['MLsample'][mask] = 'train'
@@ -123,10 +131,12 @@ def MachineShop(args):
                 subjects['SWAP_prob'][mask] = SWAP_retired_by_tonight['P'][SWAP_retired_by_tonight['zooid']==ID]
 
                 run_machine = True
-            else:
-                notfound +=1
 
-        if len(subjects[subjects['MLsample']=='train'])>=50000:
+            else:
+                notfound +=1        
+
+
+        if len(subjects[subjects['MLsample']=='train'])>=10000:
             run_machine = True
 
         last_night = SWAP_retired_by_tonight
@@ -144,8 +154,10 @@ def MachineShop(args):
                 .format(np.sum(subjects['MLsample']=='mclas'))
 
         print "MachineShop: Saving updated StorageLocker."
-        
+
+        params['dir'] = os.getcwd()
         # Save our new metadata file -- MC needs this -- save to NOT the original
+        params['metadatafile'] = params['dir']+'/'+params['survey']+'_metadata.pickle'
         swap.write_pickle(storage, params['metadatafile'])
 
 
