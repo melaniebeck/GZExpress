@@ -58,6 +58,14 @@ This is an OFFLINE way to run GZX. It uses the output SWAP files mentioned above
 The ONLINE version of GZX hasn't yet had all the kinks worked out. The basic structure of the ONLINE version will first run SWAP.py and then MachineClassifier.py directly afterwards. Both will modify the collection pickle instead of (or in addition to) the Storage Locker. 
 
 
+--- 
+
+### Data directory
+various data files (.csv, .fits) are necessary when runnining SWAP or GZX. Pathnames have not been set up to access this directory so bring these files out of /data before runninng. A list of pertinent files and their descriptions can be found in `dataDescription.txt`. 
+
+### Old Simulations
+During the course of my research the list of simulations below were performed and the output files for each of these simulations can be found in `old_sims/`. Additional SWAP-only and GZX simulations that were used in the GZX paper can be found under `sims_SWAP/` and `sims_Machine/` respectively. 
+
 ### SWAP-only Simulations
 
 A slew of simulations have been run to explore the parameter space of SWAP. Most important parameters are the intitial volunteer confusion matrix,  the subject prior probability, and acceptance and rejectance thresholds. 
